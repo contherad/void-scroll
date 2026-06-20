@@ -1,0 +1,488 @@
+/* Void Scroll — mobile-first, dark. Tuned for a ~390px-wide Devvit post iframe. */
+
+:root {
+  --bg: #0d0d0d;
+  --bg-2: #141414;
+  --card: #f6f7f8;
+  --card-ink: #1a1a1b;
+  --card-sub: #7c7c7d;
+  --accent: #ff4500; /* Reddit-ish ember, used sparingly */
+  --void: #6b8afd;
+  --text: #e8e8e8;
+  --text-dim: #8a8a8a;
+  --radius: 16px;
+  --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fixed mobile viewport — mimic the Reddit experience-post iframe. */
+.phone {
+  width: 390px;
+  height: min(720px, 100vh);
+  max-width: 100vw;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px #222, 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+}
+
+/* ----------------------------------------------------------------- Buttons */
+.btn {
+  appearance: none;
+  border: 1px solid #2c2c2c;
+  background: #1c1c1c;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.btn:active {
+  transform: scale(0.96);
+}
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn--primary:hover {
+  filter: brightness(1.06);
+}
+.btn--lg {
+  font-size: 17px;
+  padding: 15px 34px;
+}
+
+/* -------------------------------------------------------------- Idle screen */
+.idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 28px;
+  text-align: center;
+}
+.idle__title {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  background: linear-gradient(180deg, #fff, #9aa7d6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.idle__tag {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 15px;
+  max-width: 280px;
+  line-height: 1.4;
+}
+.idle__best {
+  font-family: var(--mono);
+  color: var(--void);
+  font-size: 14px;
+}
+.idle__board {
+  width: 100%;
+  max-width: 280px;
+  margin-top: 6px;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--bg-2);
+}
+.idle__board-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.idle__board-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 3px 0;
+  color: #cfcfcf;
+}
+.idle__board-row span:last-child {
+  font-family: var(--mono);
+  color: var(--void);
+}
+.idle__hint {
+  position: absolute;
+  bottom: 18px;
+  font-size: 12px;
+  color: #5a5a5a;
+  margin: 0;
+}
+
+/* -------------------------------------------------------------- Game / HUD */
+.game {
+  position: absolute;
+  inset: 0;
+}
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 20px 0;
+  z-index: 3;
+  pointer-events: none; /* let swipes pass through except the End button */
+  text-align: center;
+}
+.hud__top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.hud__level {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.hud__end {
+  pointer-events: auto;
+  appearance: none;
+  border: 1px solid #333;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.hud__score {
+  font-family: var(--mono);
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -1px;
+  color: #fff;
+  text-shadow: 0 0 24px rgba(107, 138, 253, 0.25);
+}
+.hud__hint {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #4f4f4f;
+}
+.hud__progress {
+  position: relative;
+  height: 6px;
+  margin: 6px auto 0;
+  width: 78%;
+  background: #1e1e1e;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.hud__progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--void), #8ea2ff);
+  transition: width 0.12s linear;
+}
+.hud__progress-label {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #6a6a6a;
+}
+
+/* ----------------------------------------------------------- Swipe surface */
+.swipe-surface {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+  z-index: 1;
+  /* subtle void gradient toward the top */
+  background: radial-gradient(120% 60% at 50% 120%, #16161c 0%, var(--bg) 60%);
+}
+.swipe-surface:active {
+  cursor: grabbing;
+}
+
+/* ------------------------------------------------------------ Feed cards */
+.post-card {
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 140px;
+  overflow: hidden;
+  background: var(--card);
+  color: var(--card-ink);
+  border-radius: var(--radius);
+  padding: 14px 16px 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  will-change: transform;
+  pointer-events: none; /* the surface handles all swipes */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.post-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--card-sub);
+  margin-bottom: 8px;
+}
+.post-card__avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ffa07a);
+  flex: none;
+}
+.post-card__subreddit {
+  font-weight: 700;
+  color: var(--card-ink);
+}
+.post-card__dot {
+  color: var(--card-sub);
+}
+.post-card__title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--card-ink);
+}
+.post-card__body {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #4a4a4b;
+}
+.post-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--card-sub);
+}
+.post-card__vote {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------- Milestone pop */
+.milestone {
+  position: absolute;
+  top: 32%;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.milestone__text {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(107, 138, 253, 0.18);
+  border: 1px solid rgba(107, 138, 253, 0.55);
+  box-shadow: 0 0 30px rgba(107, 138, 253, 0.4);
+  text-shadow: 0 0 18px rgba(107, 138, 253, 0.6);
+  white-space: nowrap;
+  animation: milestonePop 1.7s ease forwards;
+}
+@keyframes milestonePop {
+  0% { opacity: 0; transform: scale(0.6) translateY(10px); }
+  12% { opacity: 1; transform: scale(1.12) translateY(0); }
+  22% { transform: scale(1); }
+  78% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.96) translateY(-14px); }
+}
+
+/* ---------------------------------------------------- Void event tints */
+.swipe-surface--surge {
+  background: radial-gradient(120% 70% at 50% 120%, #14233a 0%, var(--bg) 62%);
+}
+.swipe-surface--drag {
+  background: radial-gradient(120% 70% at 50% 120%, #2a1414 0%, var(--bg) 62%);
+}
+.swipe-surface--frenzy {
+  background: radial-gradient(120% 70% at 50% 120%, #2e2410 0%, var(--bg) 62%);
+}
+
+.event-banner {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  pointer-events: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  color: #fff;
+  animation: fade 0.25s ease;
+}
+.event-banner--surge {
+  border-color: rgba(110, 160, 255, 0.7);
+  box-shadow: 0 0 22px rgba(110, 160, 255, 0.4);
+}
+.event-banner--drag {
+  border-color: rgba(255, 90, 70, 0.7);
+  box-shadow: 0 0 22px rgba(255, 90, 70, 0.35);
+}
+.event-banner--frenzy {
+  border-color: rgba(255, 170, 60, 0.7);
+  box-shadow: 0 0 22px rgba(255, 170, 60, 0.4);
+}
+
+/* ------------------------------------------------------------- Overlays */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(8, 8, 8, 0.82);
+  backdrop-filter: blur(3px);
+  animation: fade 0.2s ease;
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.overlay__panel {
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.overlay__panel--wide {
+  max-width: 330px;
+}
+.overlay__eyebrow {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.overlay__score {
+  font-family: var(--mono);
+  font-size: 52px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.overlay__next {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.overlay__next strong {
+  color: var(--void);
+}
+.overlay__rank {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.overlay__rank strong {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------- Leaderboard */
+.leaderboard {
+  width: 100%;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.leaderboard__loading {
+  padding: 24px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.leaderboard__row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.leaderboard__row:last-child {
+  border-bottom: none;
+}
+.leaderboard__row--you {
+  background: rgba(107, 138, 253, 0.12);
+}
+.leaderboard__rank {
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+.leaderboard__name {
+  text-align: left;
+  color: #d8d8d8;
+}
+.leaderboard__row--you .leaderboard__name {
+  color: var(--void);
+  font-weight: 700;
+}
+.leaderboard__score {
+  font-family: var(--mono);
+  color: #fff;
+}
