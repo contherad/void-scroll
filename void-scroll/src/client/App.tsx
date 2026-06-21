@@ -12,7 +12,7 @@ import { EventBanner } from './components/EventBanner';
 import { MiniGame } from './components/MiniGame';
 import { useSwipePhysics } from './hooks/useSwipePhysics';
 import { useVoidEvents } from './hooks/useVoidEvents';
-import { useBonusOrbs, ORB_BOOST } from './hooks/useBonusOrbs';
+import { useBonusOrbs, ORB_BOOST, type OrbKind } from './hooks/useBonusOrbs';
 import {
   getLevel,
   isEndless,
@@ -88,6 +88,15 @@ function reducer(state: GameState, action: Action): GameState {
 
 // Daily feed order is the same for everyone today (seed shared with the server).
 const DAILY_POOL = seededShuffle(FEED_CARDS, dateSeed());
+
+const ORB_GLYPH: Record<OrbKind, string> = { rush: '⚡', spark: '💠' };
+
+// A random orb PATTERN to collect (in order) to open the checkpoint gate. Length
+// and the rush/spark mix vary each time, so it's a sequence to match, not a count.
+function makePattern(): OrbKind[] {
+  const len = 5 + Math.floor(Math.random() * 5); // 5–9
+  return Array.from({ length: len }, () => (Math.random() < 0.5 ? 'rush' : 'spark'));
+}
 
 // Ambient parallax motes that rise through the void — bigger ones drift faster
 // and farther (foreground), smaller ones slow and faint (depth). They fade in and
@@ -461,10 +470,14 @@ function Game({
   const [orbToast, setOrbToast] = useState<string | null>(null);
   const orbTimer = useRef<number | null>(null);
 
-  // Checkpoint gate: collect GATE_AT orbs to open a mini-game for a big reward.
-  const GATE_AT = 4;
-  const orbsRef = useRef(0);
+  // Checkpoint gate: collect a random PATTERN of orbs IN ORDER to open a mini-game.
+  // A wrong-kind orb resets the streak. Pattern (length + mix) re-rolls each gate.
+  const [gatePattern, setGatePattern] = useState<OrbKind[]>(() => (endless ? makePattern() : []));
+  const [gateProgress, setGateProgress] = useState(0);
+  const gateProgressRef = useRef(0);
   const [gateReady, setGateReady] = useState(false);
+  const [gateFlash, setGateFlash] = useState(false); // brief flash when the pattern resets
+  const gateFlashTimer = useRef<number | null>(null);
   const [inMini, setInMini] = useState(false);
 
   const handleCollect = useCallback((order: number) => {
@@ -512,12 +525,22 @@ function Game({
     setLetterMap(letterSlots(nextWord, seed ^ (nextIndex * 0x9e3779b1), landingIndex));
   };
 
-  // Leaving the checkpoint mini-game: a win slingshots you deep; either way the
-  // gate is consumed (collect more orbs to open the next one).
+  // Opening the gate: freeze the descent so the mini-game doesn't cost your depth.
+  const enterMini = () => {
+    physics.hold();
+    sfxSting();
+    setInMini(true);
+  };
+
+  // Leaving the checkpoint mini-game: a win slingshots you deep (and the feed stays
+  // parked at the reward until you grab it — no reset to 0). Either way the gate is
+  // consumed and a fresh pattern rolls for the next one.
   const endMini = (success: boolean) => {
     setInMini(false);
     setGateReady(false);
-    orbsRef.current = 0;
+    setGatePattern(makePattern());
+    gateProgressRef.current = 0;
+    setGateProgress(0);
     if (success) {
       slingshot(1800);
       sfxSwell();
@@ -548,9 +571,19 @@ function Game({
     if (milestoneTimer.current) clearTimeout(milestoneTimer.current);
     if (phraseTimer.current) clearTimeout(phraseTimer.current);
     if (orbTimer.current) clearTimeout(orbTimer.current);
+    if (gateFlashTimer.current) clearTimeout(gateFlashTimer.current);
   }, []);
 
   const handleEnd = useCallback(() => onEndRun(physics.best), [onEndRun, physics.best]);
+
+  // Vertical depth gauge fills top→down: endless = progress toward your best, a
+  // campaign level = progress toward clearing.
+  const depthPct = endless
+    ? physics.best > 0
+      ? Math.min(100, (physics.score / physics.best) * 100)
+      : 100
+    : Math.min(100, (physics.score / clearDistance) * 100);
+  const atRecord = endless && physics.score >= physics.best;
 
   return (
     <div className={'game' + (events.event ? ` game--${events.event.type}` : '')}>
@@ -565,9 +598,20 @@ function Game({
         phrase={phrase}
         collected={collected}
         wordsDone={wordsDone}
+        gatePattern={gatePattern}
+        gateProgress={gateProgress}
+        gateFlash={gateFlash}
+        gateReady={gateReady}
+        gateGlyphs={ORB_GLYPH}
         onEndRun={handleEnd}
         onQuit={onQuit}
       />
+      <div className="depthgauge" aria-hidden="true">
+        <div
+          className={'depthgauge__fill' + (atRecord ? ' is-record' : '')}
+          style={{ height: `${depthPct}%` }}
+        />
+      </div>
       <SwipeCard
         distance={-physics.visualY}
         hero={config.card}
@@ -613,15 +657,27 @@ function Game({
             sfxSting();
             buzz(12);
             bonus.remove(o.id);
-            // Count toward the checkpoint gate.
+            // Match the gate pattern in order; a wrong kind resets the streak.
             let gateNote = '';
-            if (!gateReady && !inMini) {
-              orbsRef.current += 1;
-              if (orbsRef.current >= GATE_AT) {
-                setGateReady(true);
-                gateNote = ' · ◆ GATE!';
+            if (endless && !gateReady && !inMini && gatePattern.length > 0) {
+              if (o.kind === gatePattern[gateProgressRef.current]) {
+                const np = gateProgressRef.current + 1;
+                gateProgressRef.current = np;
+                setGateProgress(np);
+                if (np >= gatePattern.length) {
+                  setGateReady(true);
+                  gateNote = ' · ◆ GATE OPEN!';
+                } else {
+                  gateNote = ` · ◆ ${np}/${gatePattern.length}`;
+                }
               } else {
-                gateNote = ` · ◆ ${orbsRef.current}/${GATE_AT}`;
+                const np = o.kind === gatePattern[0] ? 1 : 0; // keep it if it matches step 1
+                gateProgressRef.current = np;
+                setGateProgress(np);
+                gateNote = ' · ✗ pattern reset';
+                setGateFlash(true);
+                if (gateFlashTimer.current) clearTimeout(gateFlashTimer.current);
+                gateFlashTimer.current = window.setTimeout(() => setGateFlash(false), 450);
               }
             }
             const base = o.kind === 'rush' ? `⚡ RUSH +${ORB_BOOST.rush}` : `💠 +${ORB_BOOST.spark}`;
@@ -636,9 +692,9 @@ function Game({
       {gateReady && !inMini && !launchReady && (
         <button
           className="gate"
-          onClick={() => {
-            sfxSting();
-            setInMini(true);
+          onPointerDown={(e) => {
+            e.stopPropagation(); // tappable even while another finger scrolls
+            enterMini();
           }}
         >
           <span className="gate__icon">◆</span>
@@ -646,8 +702,8 @@ function Game({
           <span className="gate__sub">tap to enter the gate</span>
         </button>
       )}
-      {events.event && <EventBanner event={events.event} />}
       <div className="toasts">
+        {events.event && <EventBanner event={events.event} />}
         {milestone && <MilestoneToast message={milestone} />}
         {phraseToast && <MilestoneToast message={phraseToast} />}
         {orbToast && <MilestoneToast message={orbToast} />}

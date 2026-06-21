@@ -591,12 +591,9 @@ body {
   background: radial-gradient(120% 70% at 50% 120%, rgba(80, 60, 20, 0.5), transparent 64%);
 }
 
+/* Lives in the bottom toast stack now (was a top banner that collided with the
+   progress bar). */
 .event-banner {
-  position: absolute;
-  top: 14%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 4;
   pointer-events: none;
   font-size: 12px;
   font-weight: 700;
@@ -604,7 +601,7 @@ body {
   padding: 7px 16px;
   border-radius: 999px;
   white-space: nowrap;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   border: 1px solid #333;
   color: #fff;
   animation: fade 0.25s ease;

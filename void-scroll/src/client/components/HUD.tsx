@@ -1,11 +1,12 @@
-// HUD.tsx — Score display, level indicator, and target progress.
+// HUD.tsx — Level/zone heading, the big number, a compact depth readout, the
+// secret-phrase row and the gate pattern. The depth GAUGE itself is a vertical
+// bar on the right edge (rendered in App) — this is just the textual readout.
 //
-// `score` is the feed's current distance from the middle (rises and falls live);
-// the progress bar tracks it, so it drops back when you let the feed fall — you
-// only clear by reaching the target while aloft. `best` is the high-water mark
-// (the endless leaderboard number).
+// `score` is the feed's current distance from the middle (rises and falls live).
+// `best` is the high-water mark (the endless leaderboard number).
 
 import { depthZone } from '../lib/levels';
+import type { OrbKind } from '../hooks/useBonusOrbs';
 
 interface Props {
   score: number;
@@ -18,6 +19,11 @@ interface Props {
   phrase?: string;
   collected?: Set<number>;
   wordsDone?: number;
+  gatePattern?: OrbKind[];
+  gateProgress?: number;
+  gateFlash?: boolean;
+  gateReady?: boolean;
+  gateGlyphs?: Record<OrbKind, string>;
   onEndRun: () => void;
   onQuit?: () => void;
 }
@@ -33,17 +39,23 @@ export function HUD({
   daily,
   phrase,
   collected,
+  gatePattern = [],
+  gateProgress = 0,
+  gateFlash = false,
+  gateReady = false,
+  gateGlyphs,
   onEndRun,
   onQuit,
 }: Props) {
-  const progress = endless ? 0 : Math.min(100, (score / target) * 100);
   const zone = depthZone(best);
-  const heading = daily
-    ? `DAILY · ${zone}`
-    : endless
-      ? `ENDLESS · ${zone}`
-      : `LEVEL ${level}`;
+  const heading = daily ? `DAILY · ${zone}` : endless ? `ENDLESS · ${zone}` : `LEVEL ${level}`;
   const phraseDone = phrase != null && collected != null && collected.size >= phrase.length;
+
+  const readout = endless
+    ? score >= best
+      ? `now ${score.toLocaleString()} · deepest yet`
+      : `now ${score.toLocaleString()} · ${(best - score).toLocaleString()} to your best`
+    : `${score.toLocaleString()} / ${target.toLocaleString()}`;
 
   return (
     <div className="hud">
@@ -68,36 +80,27 @@ export function HUD({
         {(endless ? best : score).toLocaleString()}
       </div>
 
-      {endless ? (
-        <div className="hud__progress">
-          <div
-            className={'hud__progress-bar' + (score >= best ? ' hud__progress-bar--record' : '')}
-            style={{ width: `${best > 0 ? Math.min(100, (score / best) * 100) : 100}%` }}
-          />
-          <span className="hud__progress-label">
-            {score >= best
-              ? `now ${score.toLocaleString()} · deepest yet`
-              : `now ${score.toLocaleString()} · ${(best - score).toLocaleString()} to your best`}
-          </span>
-        </div>
-      ) : (
-        <div className="hud__progress">
-          <div className="hud__progress-bar" style={{ width: `${progress}%` }} />
-          <span className="hud__progress-label">
-            {score.toLocaleString()} / {target.toLocaleString()}
-          </span>
-        </div>
-      )}
+      <div className={'hud__readout' + (endless && score >= best ? ' hud__readout--record' : '')}>
+        {readout}
+      </div>
 
       {phrase && collected && (
         <div className={'hud__phrase' + (phraseDone ? ' hud__phrase--done' : '')}>
           {wordsDone > 0 && <span className="hud__phrase-count">✦{wordsDone}</span>}
           {phrase.split('').map((ch, i) => (
-            <span
-              key={i}
-              className={'hud__phrase-ch' + (collected.has(i) ? ' is-lit' : '')}
-            >
+            <span key={i} className={'hud__phrase-ch' + (collected.has(i) ? ' is-lit' : '')}>
               {collected.has(i) ? ch : '·'}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {endless && gateGlyphs && gatePattern.length > 0 && !gateReady && (
+        <div className={'gatebar' + (gateFlash ? ' gatebar--flash' : '')}>
+          <span className="gatebar__label">◆ gate</span>
+          {gatePattern.map((k, i) => (
+            <span key={i} className={'gatebar__pip' + (i < gateProgress ? ' is-got' : '')}>
+              {gateGlyphs[k]}
             </span>
           ))}
         </div>
