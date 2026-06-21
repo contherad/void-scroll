@@ -39,9 +39,11 @@ import {
   shareRun,
   hasCurrentUser,
   getMenuStats,
+  isCurrentUser,
   type ScoreEntry,
   type ChaseTarget,
 } from './lib/api';
+import type { FeedMarker } from './components/SwipeCard';
 import { ACHIEVEMENTS } from '../shared/achievements';
 
 type Phase = 'idle' | 'map' | 'playing' | 'transition' | 'leaderboard';
@@ -626,18 +628,40 @@ function Game({
   const pbDoneRef = useRef(false);
   const [pb, setPb] = useState(false);
   const pbTimer = useRef<number | null>(null);
+
+  // In-feed chase lines: your best + the #1 player's depth, drawn in the feed so you
+  // climb toward and overtake them. Caught the leader → a one-time payoff.
+  const [markers, setMarkers] = useState<FeedMarker[]>([]);
+  const topDepthRef = useRef(0);
+  const topUserRef = useRef('');
+  const caughtRef = useRef(false);
+
   useEffect(() => {
     if (!endless) return;
     let alive = true;
-    void getUserBest()
-      .then((b) => {
-        if (alive) prevBestRef.current = b;
-      })
-      .catch(() => {});
+    void (async () => {
+      try {
+        const [b, top1] = await Promise.all([getUserBest(), getLeaderboard(1)]);
+        if (!alive) return;
+        prevBestRef.current = b;
+        const ms: FeedMarker[] = [];
+        if (b > 0) ms.push({ depth: b, label: 'YOUR BEST', kind: 'best' });
+        const t = top1[0];
+        if (t && t.score > 0 && !isCurrentUser(t)) {
+          topDepthRef.current = t.score;
+          topUserRef.current = t.username;
+          ms.push({ depth: t.score, label: `#1 ${t.username}`, kind: 'top' });
+        }
+        setMarkers(ms);
+      } catch {
+        /* markers are optional polish — ignore */
+      }
+    })();
     return () => {
       alive = false;
     };
   }, [endless]);
+
   useEffect(() => {
     if (!endless || pbDoneRef.current) return;
     if (prevBestRef.current > 0 && physics.best > prevBestRef.current) {
@@ -647,6 +671,19 @@ function Game({
       buzz([20, 40, 20]);
       if (pbTimer.current) clearTimeout(pbTimer.current);
       pbTimer.current = window.setTimeout(() => setPb(false), 2200);
+    }
+  }, [endless, physics.best]);
+
+  // Overtook the #1 player live — a big social moment.
+  useEffect(() => {
+    if (!endless || caughtRef.current) return;
+    if (topDepthRef.current > 0 && physics.best > topDepthRef.current) {
+      caughtRef.current = true;
+      sfxSwell();
+      buzz([18, 30, 18]);
+      setMilestone(`✦ caught ${topUserRef.current}!`);
+      if (milestoneTimer.current) clearTimeout(milestoneTimer.current);
+      milestoneTimer.current = window.setTimeout(() => setMilestone(null), 2200);
     }
   }, [endless, physics.best]);
 
@@ -706,6 +743,7 @@ function Game({
         letterMap={letterMap}
         collected={collected}
         onCollect={handleCollect}
+        markers={markers}
         tint={events.event?.type}
         handlers={physics.handlers}
       />

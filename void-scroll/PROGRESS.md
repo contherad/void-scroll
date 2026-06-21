@@ -217,6 +217,15 @@ daily); results show "↑ N to pass @user" (or "neck-and-neck", or "👑 you're 
 + on-theme (Reddit = community) + concrete next goal. Verified: gates green + rank→index→
 gap math smoke test. (`shared/api.ts ChaseTarget`, `server/api.ts`, `lib/api.ts`, `Leaderboard`, `App`)
 
+## Round 18 (autonomous /loop — research → improvement)
+Research: sticky arcade games put the TARGET in front of you during play, not just on
+a results screen. Added **in-feed depth chase markers**: a gold "YOUR BEST" line and a
+teal "#1 @player" line drawn into the void at their depth (screenY = middle + depth −
+distance), so they ride up the feed and you watch yourself overtake them — plus a
+one-time "✦ caught @player!" cheer when you pass the leader live. Fuses self- + social-
+competition into moment-to-moment play. Verified: gates green + depth→screen-Y mapping
+smoke test. (`SwipeCard` FeedMarker, `App` Game markers + caught detection, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

@@ -27,6 +27,7 @@ interface Props {
   letterMap: Map<number, number>; // feed-index -> letter order (word repeats, missed letters cycle)
   collected: Set<number>; // which letter orders have been tapped
   onCollect: (order: number) => void;
+  markers?: FeedMarker[]; // depth lines to chase (your best, the #1 player) — endless only
   tint?: string | undefined; // void-background tint for an active event (e.g. 'surge')
   handlers: {
     onPointerDown: (e: React.PointerEvent) => void;
@@ -34,6 +35,12 @@ interface Props {
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerCancel: (e: React.PointerEvent) => void;
   };
+}
+
+export interface FeedMarker {
+  depth: number; // distance (px) at which this line sits
+  label: string;
+  kind: 'best' | 'top';
 }
 
 function cardAt(index: number, hero: CardContent, pool: CardContent[]): CardContent {
@@ -51,6 +58,7 @@ export function SwipeCard({
   letterMap,
   collected,
   onCollect,
+  markers,
   tint,
   handlers,
 }: Props) {
@@ -131,6 +139,18 @@ export function SwipeCard({
   const start = Math.max(0, Math.floor((distance - middle) / SLOT) - 1);
   const count = Math.ceil(height / SLOT) + 3;
 
+  // Depth markers (your best / the #1 player): a line at screen-Y = middle + depth -
+  // distance, so it rides up the feed and you watch yourself overtake it.
+  const markerEls = (markers ?? []).map((m) => {
+    const y = middle + m.depth - distance;
+    if (y < -10 || y > height + 10) return null; // off-screen
+    return (
+      <div key={m.kind} className={`feedmark feedmark--${m.kind}`} style={{ transform: `translate3d(0, ${y}px, 0)` }}>
+        <span className="feedmark__label">{m.label}</span>
+      </div>
+    );
+  });
+
   const tiles = [];
   for (let i = start; i < start + count; i++) {
     if (i >= items) break; // finite feed (campaign): nothing past the last tile
@@ -172,6 +192,7 @@ export function SwipeCard({
       aria-label="Swipe up to descend; tap the glowing letters to build the phrase"
     >
       {tiles}
+      {markerEls}
     </div>
   );
 }
