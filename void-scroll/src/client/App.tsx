@@ -44,7 +44,7 @@ import {
   type ChaseTarget,
 } from './lib/api';
 import type { FeedMarker } from './components/SwipeCard';
-import { ACHIEVEMENTS } from '../shared/achievements';
+import { ACHIEVEMENTS, nextDepthBadge } from '../shared/achievements';
 
 type Phase = 'idle' | 'map' | 'playing' | 'transition' | 'leaderboard';
 type Mode = 'campaign' | 'daily';
@@ -451,6 +451,16 @@ function IdleScreen({
             );
           })}
         </div>
+        {!loading &&
+          (() => {
+            const nb = nextDepthBadge(best);
+            return nb ? (
+              <div className="nextbadge nextbadge--menu">
+                Next: <span className="nextbadge__icon">{nb.def.icon}</span> {nb.def.title} ·{' '}
+                <span className="nextbadge__gap">{nb.gap.toLocaleString()} deeper</span>
+              </div>
+            ) : null;
+          })()}
       </div>
     </div>
   );
@@ -872,6 +882,7 @@ function LeaderboardScreen({
   const [streak, setStreak] = useState<number | null>(null);
   const [newAch, setNewAch] = useState<string[]>([]);
   const [chase, setChase] = useState<ChaseTarget>(null);
+  const [best, setBest] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -895,11 +906,15 @@ function LeaderboardScreen({
             setChase(r.chase);
           }
         }
-        const [all, daily, streaks] = await Promise.all([
+        // getUserBest is the GLOBAL all-time best (both modes feed it) — the basis
+        // for the depth-badge nudge, unlike the daily board's per-day best.
+        const [all, daily, streaks, globalBest] = await Promise.all([
           getLeaderboard(10),
           getDaily(),
           getStreakBoard(10),
+          getUserBest(),
         ]);
+        if (alive) setBest(globalBest);
         if (!alive) return;
         setAllBoard(all);
         setTodayBoard(daily.entries);
@@ -947,6 +962,7 @@ function LeaderboardScreen({
       shareState={shareState}
       newAchievements={newAch}
       chase={chase}
+      best={best}
     />
   );
 }

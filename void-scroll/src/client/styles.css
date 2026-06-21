@@ -1524,3 +1524,22 @@ body {
 .feedmark--top .feedmark__label {
   color: #8ef0c4;
 }
+
+/* --------------------------------------------------- Next-badge goal nudge */
+.nextbadge {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.nextbadge__gap {
+  font-family: var(--mono);
+  color: #ffd98a;
+  font-weight: 700;
+}
+.nextbadge__icon {
+  font-size: 14px;
+}
+.nextbadge--menu {
+  margin-top: 10px;
+  text-align: center;
+}

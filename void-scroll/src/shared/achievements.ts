@@ -41,3 +41,19 @@ export function unlockedIds(stats: AchStats): string[] {
 export function achievementById(id: string): AchievementDef | undefined {
   return ACHIEVEMENTS.find((a) => a.id === id);
 }
+
+/**
+ * The next depth-tier badge you haven't earned, with the gap (px) to reach it.
+ * Depth tiers are the run-actionable progression — a single run can close the gap —
+ * so this is what powers the "X deeper to unlock …" goal-gradient nudge. Returns null
+ * once every depth tier is earned.
+ */
+export function nextDepthBadge(best: number): { def: AchievementDef; gap: number } | null {
+  const tiers = ACHIEVEMENTS.filter((a) => a.stat === 'best').sort(
+    (a, b) => a.threshold - b.threshold,
+  );
+  for (const a of tiers) {
+    if (best < a.threshold) return { def: a, gap: a.threshold - best };
+  }
+  return null;
+}

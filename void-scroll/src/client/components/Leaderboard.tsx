@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { isCurrentUser, type ScoreEntry, type ChaseTarget } from '../lib/api';
-import { achievementById, type AchievementDef } from '../../shared/achievements';
+import { achievementById, nextDepthBadge, type AchievementDef } from '../../shared/achievements';
 
 export interface LbBoard {
   id: string;
@@ -28,6 +28,7 @@ interface Props {
   shareState?: 'idle' | 'sharing' | 'done' | 'failed';
   newAchievements?: string[];
   chase?: ChaseTarget;
+  best?: number | undefined; // all-time best, for the "next badge" goal-gradient nudge
 }
 
 const SHARE_LABEL: Record<NonNullable<Props['shareState']>, string> = {
@@ -57,10 +58,12 @@ export function Leaderboard({
   shareState = 'idle',
   newAchievements = [],
   chase = null,
+  best,
 }: Props) {
   const [tab, setTab] = useState(defaultTab);
   const active = boards.find((b) => b.id === tab) ?? boards[0];
   const chaseGap = chase ? Math.max(0, chase.score - finalScore) : 0;
+  const next = best != null ? nextDepthBadge(best) : null;
   const unlocked = newAchievements
     .map(achievementById)
     .filter((a): a is AchievementDef => a != null);
@@ -91,6 +94,12 @@ export function Leaderboard({
         ) : rank === 1 ? (
           <div className="chase chase--top">👑 You’re #1 — defend your throne</div>
         ) : null}
+        {next && (
+          <div className="nextbadge">
+            <span className="nextbadge__gap">{next.gap.toLocaleString()} deeper</span> to unlock{' '}
+            <span className="nextbadge__icon">{next.def.icon}</span> {next.def.title}
+          </div>
+        )}
         {streak !== null && streak > 0 && (
           <div className="overlay__streak">🔥 {streak}-day streak</div>
         )}

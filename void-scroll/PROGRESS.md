@@ -226,6 +226,15 @@ one-time "✦ caught @player!" cheer when you pass the leader live. Fuses self- 
 competition into moment-to-moment play. Verified: gates green + depth→screen-Y mapping
 smoke test. (`SwipeCard` FeedMarker, `App` Game markers + caught detection, `styles.css`)
 
+## Round 19 (autonomous /loop — research → improvement)
+Research: the goal-gradient effect — effort intensifies as a *visible* goal nears.
+Achievements only showed locked/unlocked, no "how close." Added a **next-badge nudge**
+(`nextDepthBadge(best)` in shared): the results screen and the menu now show "N deeper
+to unlock 🕳️ The Abyss" — a concrete, single-run-achievable target right when you decide
+to replay. Daily uses the global best (`getUserBest`), not the per-day board, so the
+gap is correct. Verified: gates green + tier/gap smoke test. (`shared/achievements.ts`,
+`Leaderboard`, `App` IdleScreen + LeaderboardScreen, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the
