@@ -1,0 +1,970 @@
+/* Void Scroll — mobile-first, dark. Tuned for a ~390px-wide Devvit post iframe. */
+
+:root {
+  --bg: #0d0d0d;
+  --bg-2: #141414;
+  --card: #f6f7f8;
+  --card-ink: #1a1a1b;
+  --card-sub: #7c7c7d;
+  --accent: #ff4500; /* Reddit-ish ember, used sparingly */
+  --void: #6b8afd;
+  --text: #e8e8e8;
+  --text-dim: #8a8a8a;
+  --radius: 16px;
+  --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fill the Reddit experience-post iframe; cap width so it stays phone-shaped on
+   wide screens (centered by #root). */
+.phone {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px #222, 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  z-index: 1; /* above the ambient particle layer */
+}
+
+/* ------------------------------------------------------- Ambient particles */
+.particles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: #aeb8e6;
+  animation-name: particleDrift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+@keyframes particleDrift {
+  from { transform: translateY(8px); }
+  to { transform: translateY(-24px); }
+}
+
+/* ----------------------------------------------------------------- Buttons */
+.btn {
+  appearance: none;
+  border: 1px solid #2c2c2c;
+  background: #1c1c1c;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.btn:active {
+  transform: scale(0.96);
+}
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn--primary:hover {
+  filter: brightness(1.06);
+}
+.btn--lg {
+  font-size: 17px;
+  padding: 15px 34px;
+}
+
+/* -------------------------------------------------------------- Idle screen */
+.idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 28px;
+  text-align: center;
+  overflow-y: auto;
+}
+.idle__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.idle__title {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  line-height: 0.95;
+  background: linear-gradient(180deg, #fff, #8ea2ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.idle__title span {
+  display: block;
+  font-size: 26px;
+  letter-spacing: 8px;
+  background: linear-gradient(180deg, #9aa7d6, #6b8afd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.idle__tag {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+  max-width: 270px;
+  line-height: 1.4;
+}
+.idle__stats {
+  display: flex;
+  gap: 10px;
+}
+.idle__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 92px;
+  padding: 10px 14px;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  background: var(--bg-2);
+}
+.idle__stat-n {
+  font-family: var(--mono);
+  font-size: 20px;
+  color: var(--void);
+}
+.idle__stat-l {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.idle__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+.idle__actions .btn--primary {
+  width: 100%;
+}
+.idle__actions .btn--daily {
+  width: 100%;
+}
+.idle__best {
+  font-family: var(--mono);
+  color: var(--void);
+  font-size: 14px;
+}
+.idle__how {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 300px;
+  margin-top: 4px;
+}
+.idle__how-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #b9b9c4;
+  text-align: left;
+}
+.idle__how-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(107, 138, 253, 0.16);
+  color: var(--void);
+  font-size: 13px;
+}
+.idle__how-icon--gold {
+  background: rgba(255, 196, 84, 0.16);
+  color: #ffd98a;
+}
+.idle__board {
+  width: 100%;
+  max-width: 280px;
+  margin-top: 6px;
+  min-height: 112px; /* reserve space for 3 rows so it never jumps as data loads */
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--bg-2);
+}
+.idle__board-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+}
+
+/* Skeleton loaders — keep the layout stable while data loads. */
+.idle__stats {
+  min-height: 56px;
+}
+.idle__stat--skel {
+  width: 92px;
+  height: 54px;
+  padding: 0;
+}
+.idle__board-row--skel {
+  height: 18px;
+  margin: 6px 0;
+  border-radius: 5px;
+}
+.idle__stat--skel,
+.idle__board-row--skel {
+  background: linear-gradient(90deg, #141414 25%, #202020 50%, #141414 75%);
+  background-size: 200% 100%;
+  animation: skel 1.4s ease-in-out infinite;
+}
+@keyframes skel {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.idle__board-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.idle__board-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 3px 0;
+  color: #cfcfcf;
+}
+.idle__board-row span:last-child {
+  font-family: var(--mono);
+  color: var(--void);
+}
+.idle__hint {
+  position: absolute;
+  bottom: 18px;
+  font-size: 12px;
+  color: #5a5a5a;
+  margin: 0;
+}
+
+/* -------------------------------------------------------------- Game / HUD */
+.game {
+  position: absolute;
+  inset: 0;
+}
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 18px 20px 0;
+  z-index: 3;
+  pointer-events: none; /* let swipes pass through except the End button */
+  text-align: center;
+}
+.hud__top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.hud__level {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.hud__end {
+  pointer-events: auto;
+  appearance: none;
+  border: 1px solid #333;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.hud__quit {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  pointer-events: auto;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #2c2c2c;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-dim);
+  font-size: 13px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.hud__quit:hover {
+  color: #fff;
+  border-color: #444;
+}
+.hud__score {
+  font-family: var(--mono);
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -1px;
+  color: #fff;
+  text-shadow: 0 0 24px rgba(107, 138, 253, 0.25);
+}
+.hud__hint {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #4f4f4f;
+}
+.hud__progress {
+  position: relative;
+  height: 6px;
+  margin: 6px auto 0;
+  width: 78%;
+  background: #1e1e1e;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.hud__progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--void), #8ea2ff);
+  /* No CSS transition: the score already animates per-frame in the hook, so a
+     width transition would just lag behind and never reach full at clear. */
+}
+.hud__progress-bar--record {
+  background: linear-gradient(90deg, #2fd479, #8ef0b4);
+}
+.hud__progress-label {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #6a6a6a;
+}
+
+/* ----------------------------------------------------------- Swipe surface */
+.swipe-surface {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+  z-index: 1;
+  /* translucent so the particle field shows through; faint void glow at the bottom */
+  background: radial-gradient(110% 50% at 50% 120%, rgba(40, 44, 70, 0.32), transparent 62%);
+}
+.swipe-surface:active {
+  cursor: grabbing;
+}
+
+/* ------------------------------------------------------------ Feed tiles */
+.tile {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 220px;
+  height: 132px;
+  margin-left: -110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 0 24px rgba(107, 138, 253, 0.05);
+  backdrop-filter: blur(2px);
+  will-change: transform;
+  pointer-events: none; /* the surface handles all swipes */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tile__glyph {
+  font-size: 40px;
+  line-height: 1;
+  color: #cdd6ff;
+  text-shadow: 0 0 22px rgba(107, 138, 253, 0.4);
+}
+.tile__word {
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: lowercase;
+  color: var(--text-dim);
+}
+
+/* Letter target tiles — glowing, tap to collect. */
+.tile--target {
+  background: rgba(255, 196, 84, 0.1);
+  border-color: rgba(255, 196, 84, 0.6);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 28px rgba(255, 196, 84, 0.28);
+  animation: targetPulse 1.4s ease-in-out infinite;
+}
+.tile--got {
+  background: rgba(54, 224, 122, 0.08);
+  border-color: rgba(54, 224, 122, 0.45);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  animation: none;
+  opacity: 0.75;
+}
+.tile__letter {
+  font-family: var(--mono);
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffd98a;
+  text-shadow: 0 0 22px rgba(255, 196, 84, 0.55);
+}
+.tile--got .tile__letter {
+  color: #8ef0b4;
+  text-shadow: none;
+}
+.tile__hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 196, 84, 0.8);
+}
+.tile--got .tile__hint {
+  color: rgba(142, 240, 180, 0.8);
+}
+@keyframes targetPulse {
+  0%, 100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 24px rgba(255, 196, 84, 0.22); }
+  50% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 34px rgba(255, 196, 84, 0.45); }
+}
+
+/* Secret phrase progress row in the HUD. */
+.hud__phrase {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.hud__phrase-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #ffd98a;
+  margin-right: 6px;
+}
+.hud__phrase-ch {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  width: 16px;
+  text-align: center;
+  color: #3a3a3a;
+}
+.hud__phrase-ch.is-lit {
+  color: #ffd98a;
+  text-shadow: 0 0 12px rgba(255, 196, 84, 0.5);
+}
+.hud__phrase--done .hud__phrase-ch {
+  color: #8ef0b4;
+  text-shadow: 0 0 12px rgba(54, 224, 122, 0.5);
+}
+
+/* ---------------------------------------------------------- Milestone pop */
+.milestone {
+  position: absolute;
+  top: 32%;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.milestone__text {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(107, 138, 253, 0.18);
+  border: 1px solid rgba(107, 138, 253, 0.55);
+  box-shadow: 0 0 30px rgba(107, 138, 253, 0.4);
+  text-shadow: 0 0 18px rgba(107, 138, 253, 0.6);
+  white-space: nowrap;
+  animation: milestonePop 1.7s ease forwards;
+}
+@keyframes milestonePop {
+  0% { opacity: 0; transform: scale(0.6) translateY(10px); }
+  12% { opacity: 1; transform: scale(1.12) translateY(0); }
+  22% { transform: scale(1); }
+  78% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.96) translateY(-14px); }
+}
+
+/* Void event tints — translucent so particles still show through. */
+.swipe-surface--surge {
+  background: radial-gradient(120% 70% at 50% 120%, rgba(20, 50, 90, 0.5), transparent 64%);
+}
+.swipe-surface--drag {
+  background: radial-gradient(120% 70% at 50% 120%, rgba(70, 20, 20, 0.5), transparent 64%);
+}
+.swipe-surface--frenzy {
+  background: radial-gradient(120% 70% at 50% 120%, rgba(80, 60, 20, 0.5), transparent 64%);
+}
+
+.event-banner {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  pointer-events: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  color: #fff;
+  animation: fade 0.25s ease;
+}
+.event-banner--surge {
+  border-color: rgba(110, 160, 255, 0.7);
+  box-shadow: 0 0 22px rgba(110, 160, 255, 0.4);
+}
+.event-banner--drag {
+  border-color: rgba(255, 90, 70, 0.7);
+  box-shadow: 0 0 22px rgba(255, 90, 70, 0.35);
+}
+.event-banner--frenzy {
+  border-color: rgba(255, 170, 60, 0.7);
+  box-shadow: 0 0 22px rgba(255, 170, 60, 0.4);
+}
+
+/* ------------------------------------------------------------- Overlays */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(8, 8, 8, 0.82);
+  backdrop-filter: blur(3px);
+  animation: fade 0.2s ease;
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.overlay__panel {
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.overlay__panel--wide {
+  max-width: 330px;
+}
+.overlay__eyebrow {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.overlay__score {
+  font-family: var(--mono);
+  font-size: 52px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.overlay__cleared {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #8ef0b4;
+  text-shadow: 0 0 22px rgba(54, 224, 122, 0.5);
+}
+.overlay__next {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.overlay__next strong {
+  color: var(--void);
+}
+.overlay__rank {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+.overlay__rank strong {
+  color: var(--accent);
+}
+
+/* ---------------------------------------------------------- Leaderboard */
+.leaderboard {
+  width: 100%;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.leaderboard__loading {
+  padding: 24px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.leaderboard__row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.leaderboard__row:last-child {
+  border-bottom: none;
+}
+.leaderboard__row--you {
+  background: rgba(107, 138, 253, 0.12);
+}
+.leaderboard__rank {
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+.leaderboard__name {
+  text-align: left;
+  color: #d8d8d8;
+}
+.leaderboard__row--you .leaderboard__name {
+  color: var(--void);
+  font-weight: 700;
+}
+.leaderboard__score {
+  font-family: var(--mono);
+  color: #fff;
+}
+
+/* ----------------------------------------------------- Daily Descent bits */
+.btn--daily {
+  background: #1c1c1c;
+  border: 1px solid #2c2c2c;
+  color: #cfd6ff;
+  font-size: 14px;
+  padding: 11px 18px;
+}
+.btn--daily:hover {
+  border-color: var(--void);
+}
+.btn--share {
+  background: rgba(107, 138, 253, 0.12);
+  border: 1px solid rgba(107, 138, 253, 0.55);
+  color: #cdd6ff;
+  font-size: 14px;
+}
+.btn--share:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.idle__board-empty {
+  font-size: 13px;
+  color: #5a5a5a;
+  padding: 4px 0;
+}
+.overlay__streak {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffb066;
+}
+.overlay__footnote {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------- Mute toggle */
+.mute {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #2c2c2c;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 50%;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.65;
+}
+.mute:hover {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------ First-run coachmark */
+.coach {
+  position: absolute;
+  top: 56%;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  text-align: center;
+  pointer-events: none;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: #cdd6ff;
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.8);
+  animation: coachFade 5s ease forwards;
+}
+@keyframes coachFade {
+  0% { opacity: 0; transform: translateY(6px); }
+  12% { opacity: 1; transform: translateY(0); }
+  72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Collected phrase letters give a quick pop. */
+.hud__phrase-ch.is-lit {
+  animation: letterPop 0.28s ease;
+}
+@keyframes letterPop {
+  0% { transform: scale(1.8); }
+  100% { transform: scale(1); }
+}
+
+/* --------------------------------------------------- Phrase-complete launch */
+.launch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 30px;
+  border-radius: 18px;
+  background: rgba(255, 196, 84, 0.14);
+  border: 1px solid rgba(255, 196, 84, 0.7);
+  box-shadow: 0 0 40px rgba(255, 196, 84, 0.4);
+  color: #ffd98a;
+  cursor: pointer;
+  animation: launchPulse 1s ease-in-out infinite;
+}
+.launch__word {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #ffe6b0;
+}
+.launch__cta {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+}
+.launch__sub {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(255, 217, 138, 0.85);
+}
+@keyframes launchPulse {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(255, 196, 84, 0.3);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(255, 196, 84, 0.55);
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+/* ------------------------------------------------------- Floating bonus orbs */
+.orb {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -50%); /* base centering (also used under reduced-motion) */
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  animation: orbDrift 3.6s ease forwards;
+}
+.orb--rush {
+  border-color: rgba(255, 196, 84, 0.7);
+  box-shadow: 0 0 26px rgba(255, 196, 84, 0.45);
+}
+.orb--spark {
+  border-color: rgba(107, 138, 253, 0.7);
+  box-shadow: 0 0 22px rgba(107, 138, 253, 0.45);
+}
+@keyframes orbDrift {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(0.6); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; transform: translate(-50%, -60%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -95%) scale(0.9); }
+}
+
+/* Respect reduced-motion: kill the looping/pulse animations. */
+@media (prefers-reduced-motion: reduce) {
+  .tile--target,
+  .hud__phrase-ch.is-lit,
+  .coach,
+  .milestone__text,
+  .launch,
+  .orb,
+  .particle {
+    animation: none !important;
+  }
+}
+
+/* ----------------------------------------------------------------- Level map */
+.map {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 24px;
+  overflow-y: auto;
+}
+.map__title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+.map__levels {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 300px;
+}
+.map__node {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid #2c2c2c;
+  background: #161616;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.08s ease;
+}
+.map__node:active {
+  transform: scale(0.98);
+}
+.map__node--locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.map__node--endless {
+  border-color: rgba(107, 138, 253, 0.5);
+  background: rgba(107, 138, 253, 0.08);
+}
+.map__node-glyph {
+  font-size: 24px;
+  width: 30px;
+  text-align: center;
+  flex: none;
+}
+.map__node-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.map__node-label {
+  font-size: 15px;
+  font-weight: 700;
+}
+.map__node-sub {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.map__node-mark {
+  font-family: var(--mono);
+  color: var(--void);
+  font-size: 16px;
+}

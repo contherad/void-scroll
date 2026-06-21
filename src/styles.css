@@ -218,7 +218,8 @@ body {
   position: absolute;
   inset: 0 auto 0 0;
   background: linear-gradient(90deg, var(--void), #8ea2ff);
-  transition: width 0.12s linear;
+  /* No CSS transition: the score already animates per-frame in the hook, so a
+     width transition would just lag behind and never reach full at clear. */
 }
 .hud__progress-label {
   position: absolute;
