@@ -125,6 +125,18 @@ type-check + lint + build green (`npm run type-check && npm run lint && npm run 
   per-mote speed/size (parallax) and fade in/out; no longer killed by reduced-motion
   (just gently slowed). (`App` Particles, `styles.css`)
 
+## Round 8 (user feedback)
+- ✅ **Checkpoint mini-game**: collect 4 orbs → a pulsing **◆ CHECKPOINT** gate
+  appears; tap it to enter **"Stabilize the Core"** — an Among-Us-style task that
+  reuses the resistance mechanic in **4 directions** (swipe the shown way to fill the
+  core against rising resistance, 4 steps, beat the timer). Win → a big slingshot
+  (+1800 from best). (`components/MiniGame.tsx`, `App` Game, `styles.css`)
+- ✅ **Toast overlap fixed**: cheers/bonuses now live in a lower **toast stack**
+  (column) so they never cover the status bar or collected-letter row, and multiple
+  stack instead of piling on one spot. (`App`, `styles.css`)
+- ✅ **Random word order**: a free endless run now uses a fresh random seed, so the
+  word sequence differs every play; Daily stays date-seeded (shared). (`App` Game)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

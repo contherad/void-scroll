@@ -636,8 +636,7 @@ function Game({
       {gateReady && !inMini && !launchReady && (
         <button
           className="gate"
-          onPointerDown={(e) => {
-            e.stopPropagation();
+          onClick={() => {
             sfxSting();
             setInMini(true);
           }}
