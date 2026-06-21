@@ -170,6 +170,16 @@ type-check + lint + build green (`npm run type-check && npm run lint && npm run 
   keep swiping TOWARD each ring to push the core out (harder the further it goes) and
   hold it inside until it locks. 4 rings, fresh direction each. (`MiniGame`, `styles.css`)
 
+## Round 12 (autonomous /loop — retention research → improvement)
+Research: the biggest retention gap was **persistent cross-session goals**. Added an
+**Achievements / Badges system** (9 badges: depth tiers mirroring the zones, lifetime,
+streak). Shared rule defs (`shared/achievements.ts`) so client + server agree; server
+persists the unlocked set (`ach:{user}`) and detects newly-unlocked on every submit;
+menu shows a badge grid (X/9, locked = dim + ???); run-end shows a "Badge unlocked"
+banner. Gives non-leaders their own ladder + completionist pull + a "next badge" chase.
+Verified: gates green + unlock-logic smoke test (thresholds, cumulative tiers, newly =
+now−prev). (`shared/achievements.ts`, `server/api.ts`, `lib/api.ts`, `App`, `Leaderboard`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

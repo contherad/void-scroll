@@ -40,7 +40,7 @@ import {
   getMenuStats,
   type ScoreEntry,
 } from './lib/api';
-import { ACHIEVEMENTS, achievementById } from '../shared/achievements';
+import { ACHIEVEMENTS } from '../shared/achievements';
 
 type Phase = 'idle' | 'map' | 'playing' | 'transition' | 'leaderboard';
 type Mode = 'campaign' | 'daily';

@@ -1,6 +1,7 @@
 // Leaderboard.tsx — Post-run board (global all-time, or the daily descent board).
 
 import { isCurrentUser, type ScoreEntry } from '../lib/api';
+import { achievementById, type AchievementDef } from '../../shared/achievements';
 
 interface Props {
   entries: ScoreEntry[];
@@ -15,6 +16,7 @@ interface Props {
   playAgainLabel?: string;
   onShare?: (() => void) | undefined;
   shareState?: 'idle' | 'sharing' | 'done' | 'failed';
+  newAchievements?: string[];
 }
 
 const SHARE_LABEL: Record<NonNullable<Props['shareState']>, string> = {
@@ -37,7 +39,11 @@ export function Leaderboard({
   playAgainLabel = 'Play again',
   onShare,
   shareState = 'idle',
+  newAchievements = [],
 }: Props) {
+  const unlocked = newAchievements
+    .map(achievementById)
+    .filter((a): a is AchievementDef => a != null);
   return (
     <div className="overlay">
       <div className="overlay__panel overlay__panel--wide">
@@ -50,6 +56,19 @@ export function Leaderboard({
         )}
         {streak !== null && streak > 0 && (
           <div className="overlay__streak">🔥 {streak}-day streak</div>
+        )}
+
+        {unlocked.length > 0 && (
+          <div className="unlocked">
+            <div className="unlocked__title">★ Badge{unlocked.length > 1 ? 's' : ''} unlocked</div>
+            {unlocked.map((a) => (
+              <div className="unlocked__row" key={a.id}>
+                <span className="unlocked__icon">{a.icon}</span>
+                <span className="unlocked__name">{a.title}</span>
+                <span className="unlocked__desc">{a.desc}</span>
+              </div>
+            ))}
+          </div>
         )}
 
         <div className="leaderboard">
