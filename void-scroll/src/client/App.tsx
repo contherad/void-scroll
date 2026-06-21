@@ -37,9 +37,10 @@ import {
   submitProgress,
   shareRun,
   hasCurrentUser,
-  getLifetime,
+  getMenuStats,
   type ScoreEntry,
 } from './lib/api';
+import { ACHIEVEMENTS, achievementById } from '../shared/achievements';
 
 type Phase = 'idle' | 'map' | 'playing' | 'transition' | 'leaderboard';
 type Mode = 'campaign' | 'daily';
@@ -295,6 +296,7 @@ function IdleScreen({
   const [dailyBest, setDailyBest] = useState(0);
   const [streak, setStreak] = useState(0);
   const [lifetime, setLifetime] = useState(0);
+  const [unlocked, setUnlocked] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -312,8 +314,11 @@ function IdleScreen({
           setStreak(d.streak);
         }
       }),
-      getLifetime().then((l) => {
-        if (alive) setLifetime(l);
+      getMenuStats().then((s) => {
+        if (alive) {
+          setLifetime(s.lifetime);
+          setUnlocked(new Set(s.achievements));
+        }
       }),
     ]).then(() => {
       if (alive) setLoading(false);
@@ -397,6 +402,27 @@ function IdleScreen({
             </div>
           ))
         )}
+      </div>
+
+      <div className="idle__badges">
+        <div className="idle__board-title">
+          Badges · {unlocked.size}/{ACHIEVEMENTS.length}
+        </div>
+        <div className="badges">
+          {ACHIEVEMENTS.map((a) => {
+            const got = unlocked.has(a.id);
+            return (
+              <div
+                key={a.id}
+                className={'badge' + (got ? ' is-got' : '')}
+                title={`${a.title} — ${a.desc}`}
+              >
+                <span className="badge__icon">{a.icon}</span>
+                <span className="badge__name">{got ? a.title : '???'}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -737,6 +763,7 @@ function LeaderboardScreen({
   const [entries, setEntries] = useState<ScoreEntry[]>([]);
   const [rank, setRank] = useState<number | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
+  const [newAch, setNewAch] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -744,18 +771,20 @@ function LeaderboardScreen({
     void (async () => {
       try {
         if (mode === 'daily') {
-          await submitDailyScore(finalScore);
+          const r = await submitDailyScore(finalScore);
           const d = await getDaily();
           if (!alive) return;
           setEntries(d.entries);
           setRank(d.rank);
           setStreak(d.streak);
+          setNewAch(r.newAchievements);
         } else {
-          const { rank } = await submitScore(finalScore, level);
+          const r = await submitScore(finalScore, level);
           const board = await getLeaderboard(10);
           if (!alive) return;
-          setRank(rank);
+          setRank(r.rank);
           setEntries(board);
+          setNewAch(r.newAchievements);
         }
       } catch {
         /* keep whatever we have; show empty board */
@@ -792,6 +821,7 @@ function LeaderboardScreen({
       onPlayAgain={onPlayAgain}
       onShare={finalScore > 0 && hasCurrentUser() ? handleShare : undefined}
       shareState={shareState}
+      newAchievements={newAch}
     />
   );
 }

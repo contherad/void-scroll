@@ -5,13 +5,19 @@ export type InitResponse = {
   username: string | null;
   best: number;
   lifetime: number;
+  achievements: string[]; // ids of unlocked badges
   postId: string | null;
 };
 
 export type LeaderboardEntry = { username: string; score: number };
 export type LeaderboardResponse = { entries: LeaderboardEntry[] };
 export type BestResponse = { best: number };
-export type ScoreResponse = { best: number; rank: number | null; lifetime: number };
+export type ScoreResponse = {
+  best: number;
+  rank: number | null;
+  lifetime: number;
+  newAchievements: string[]; // badges unlocked by THIS run
+};
 
 // Daily Descent: one shared seeded run per day, with its own board + streaks.
 export type DailyResponse = {
@@ -27,6 +33,7 @@ export type DailyScoreResponse = {
   rank: number | null;
   streak: number;
   lifetime: number;
+  newAchievements: string[];
 };
 
 // Campaign progress: highest unlocked level (1..6, where 6 = Endless).

@@ -10,6 +10,7 @@ import type {
   ScoreResponse,
   ShareResponse,
 } from '../../shared/api';
+import { unlockedIds, type AchStats } from '../../shared/achievements';
 
 export const api = new Hono();
 
@@ -37,14 +38,46 @@ async function recordRun(username: string, score: number): Promise<{ best: numbe
   return { best: Math.round(Math.max(prev, score)), lifetime };
 }
 
-// Who am I + my best + lifetime (called once on load).
+// Recompute unlocked badges from current stats, persist them, and report which are
+// newly unlocked (so the run-end screen can celebrate them once).
+async function syncAchievements(
+  username: string,
+  stats: AchStats,
+): Promise<{ unlocked: string[]; newly: string[] }> {
+  const unlocked = unlockedIds(stats);
+  const raw = await redis.get(`ach:${username}`);
+  let prev: string[] = [];
+  if (raw) {
+    try {
+      prev = JSON.parse(raw) as string[];
+    } catch {
+      prev = [];
+    }
+  }
+  const prevSet = new Set(prev);
+  const newly = unlocked.filter((id) => !prevSet.has(id));
+  if (newly.length > 0 || prev.length !== unlocked.length) {
+    await redis.set(`ach:${username}`, JSON.stringify(unlocked));
+  }
+  return { unlocked, newly };
+}
+
+// Who am I + my best + lifetime + unlocked badges (called once on load).
 api.get('/init', async (c) => {
   const username = (await reddit.getCurrentUsername()) ?? null;
+  const best = await bestFor(username);
+  const lifetime = await lifetimeFor(username);
+  let achievements: string[] = [];
+  if (username) {
+    const streak = await getStreak(username);
+    achievements = (await syncAchievements(username, { best, lifetime, streak })).unlocked;
+  }
   return c.json<InitResponse>({
     type: 'init',
     username,
-    best: await bestFor(username),
-    lifetime: await lifetimeFor(username),
+    best,
+    lifetime,
+    achievements,
     postId: context.postId ?? null,
   });
 });
@@ -73,13 +106,15 @@ api.post('/score', async (c) => {
   const score = Math.max(0, Math.round(body.score ?? 0));
 
   const { best, lifetime } = await recordRun(username, score);
+  const streak = await getStreak(username);
+  const { newly } = await syncAchievements(username, { best, lifetime, streak });
 
   // zRank is 0-based ascending (lowest first); convert to 1-based highest-first.
   const card = await redis.zCard(LB);
   const rankAsc = await redis.zRank(LB, username);
   const rank = rankAsc == null ? null : card - rankAsc;
 
-  return c.json<ScoreResponse>({ best, rank, lifetime });
+  return c.json<ScoreResponse>({ best, rank, lifetime, newAchievements: newly });
 });
 
 // ------------------------------------------------------------------------ Share
@@ -224,7 +259,8 @@ api.post('/daily-score', async (c) => {
   const streak = await bumpStreak(username);
 
   // A daily run also counts toward your global best + lifetime total.
-  const { lifetime } = await recordRun(username, score);
+  const { best: globalBest, lifetime } = await recordRun(username, score);
+  const { newly } = await syncAchievements(username, { best: globalBest, lifetime, streak });
 
-  return c.json<DailyScoreResponse>({ best, rank, streak, lifetime });
+  return c.json<DailyScoreResponse>({ best, rank, streak, lifetime, newAchievements: newly });
 });
