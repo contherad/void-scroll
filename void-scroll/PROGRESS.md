@@ -162,6 +162,14 @@ type-check + lint + build green (`npm run type-check && npm run lint && npm run 
   is inside AND slow (must counter the force, not blow through). Continuous physics
   sim (spring-to-finger + wind + damping), per-pointer steering. (`MiniGame`, `styles.css`)
 
+## Round 11 (user feedback)
+- ✅ **Mini-game now uses the REAL mechanic**: rebuilt "Push the Core" so it's the
+  scroll's own feel — **repeated swipes against rising resistance, alternating thumbs**
+  (active-pointer: only the first touch drives, lift before the next), and a constant
+  **force pulls the core back to centre**. Tapping/holding does nothing now; you must
+  keep swiping TOWARD each ring to push the core out (harder the further it goes) and
+  hold it inside until it locks. 4 rings, fresh direction each. (`MiniGame`, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

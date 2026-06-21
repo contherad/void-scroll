@@ -1,23 +1,22 @@
-// MiniGame.tsx — "Steady the Core": a checkpoint task that reuses the void's
-// resistance feel as a 2D steering puzzle. Drag the core orb into each waypoint and
-// HOLD it there — but a current (a constant force) drifts it off course, and the
-// core carries momentum, so you have to steer against the pull. The current changes
-// direction every waypoint. Clear all of them before the timer to win a slingshot.
+// MiniGame.tsx — "Push the Core": the checkpoint task uses the SAME mechanic as the
+// scroll — repeated swipes against rising resistance, alternating thumbs (only the
+// first touch drives; lift it before the next). A constant force pulls the core back
+// to centre, so you must keep swiping TOWARD each ring to push it out and hold it
+// there. Tapping/holding does nothing — only strokes move it. Clear the rings to win.
 
 import type * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { sfxTick, sfxThunk, buzz } from '../lib/sfx';
 
-const STEPS = 5;
-const PAD = 46; // keep waypoints off the edges
-const TARGET_R = 32; // how close counts as "on" the waypoint
-const CORE_R = 15;
-const CHARGE_MS = 460; // how long you must hold it steady to lock a waypoint
-const GRAB = 0.045; // spring strength toward your finger
-const DAMP = 0.87; // inertia (closer to 1 = more glide / harder)
-const WIND = 0.4; // constant drift force (px/frame^2)
-const STEADY_V = 3.0; // core must be slower than this (px/frame) inside the ring to charge
-const TIME_MS = 24000;
+const STEPS = 4;
+const CORE_R = 16;
+const TARGET_R = 30; // how close (to the ring centre) counts as "on" it
+const TARGET_DIST = 0.32; // ring distance from centre, as a fraction of the field
+const K = 0.006; // resistance: the further out, the less each swipe moves it
+const GAIN = 0.95; // swipe px -> core px (before resistance)
+const RETURN = 0.975; // per-frame pull back toward centre (the force you fight)
+const CHARGE_MS = 520; // time held inside the ring to lock it
+const TIME_MS = 22000;
 
 let seenIntro = false;
 
@@ -31,24 +30,21 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
   const [phase, setPhase] = useState<'intro' | 'play'>(seenIntro ? 'play' : 'intro');
   const fieldRef = useRef<HTMLDivElement>(null);
 
-  // --- simulation refs (mutated every frame, no re-render) ---
+  // --- sim refs (positions are RELATIVE TO CENTRE) ---
   const sizeRef = useRef({ w: 300, h: 360 });
-  const coreRef = useRef<Vec>({ x: 150, y: 180 });
-  const velRef = useRef<Vec>({ x: 0, y: 0 });
-  const windRef = useRef<Vec>({ x: 0, y: 0 });
-  const targetRef = useRef<Vec>({ x: 150, y: 90 });
+  const coreRef = useRef<Vec>({ x: 0, y: 0 });
+  const targetRef = useRef<Vec>({ x: 0, y: -100 });
   const chargeRef = useRef(0);
   const stepRef = useRef(0);
-  const fingerRef = useRef<Vec | null>(null);
-  const ptrs = useRef<Set<number>>(new Set());
+  const lastAngleRef = useRef(0);
+  const ptrs = useRef<Map<number, Vec>>(new Map());
   const activeId = useRef<number | null>(null);
   const doneRef = useRef(false);
   const startRef = useRef(0);
 
-  // --- render mirror ---
-  const [core, setCore] = useState<Vec>({ x: 150, y: 180 });
-  const [target, setTarget] = useState<Vec>({ x: 150, y: 90 });
-  const [windAngle, setWindAngle] = useState(0);
+  // --- render mirror (in field px) ---
+  const [corePx, setCorePx] = useState<Vec>({ x: 150, y: 180 });
+  const [targetPx, setTargetPx] = useState<Vec>({ x: 150, y: 80 });
   const [charge, setCharge] = useState(0);
   const [step, setStep] = useState(0);
   const [timeLeft, setTimeLeft] = useState(1);
@@ -59,19 +55,15 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
     onDone(ok);
   };
 
-  // Refs only — painting happens in the rAF loop (never setState in the effect body).
+  // Refs only — painting happens in the rAF loop (no setState in the effect body).
   const placeWaypoint = () => {
     const { w, h } = sizeRef.current;
-    let tx = w / 2;
-    let ty = h / 2;
-    for (let i = 0; i < 12; i++) {
-      tx = rand(PAD, w - PAD);
-      ty = rand(PAD, h - PAD);
-      if (Math.hypot(tx - coreRef.current.x, ty - coreRef.current.y) > Math.min(w, h) * 0.42) break;
-    }
-    targetRef.current = { x: tx, y: ty };
-    const a = rand(0, Math.PI * 2); // a fresh current direction each waypoint
-    windRef.current = { x: Math.cos(a) * WIND, y: Math.sin(a) * WIND };
+    const dist = Math.min(w, h) * TARGET_DIST;
+    let a = rand(0, Math.PI * 2);
+    // keep consecutive rings in clearly different directions
+    if (Math.abs(a - lastAngleRef.current) < 1.2) a += 1.2;
+    lastAngleRef.current = a;
+    targetRef.current = { x: Math.cos(a) * dist, y: Math.sin(a) * dist };
     chargeRef.current = 0;
   };
 
@@ -81,9 +73,8 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
     if (el) {
       const r = el.getBoundingClientRect();
       sizeRef.current = { w: r.width, h: r.height };
-      coreRef.current = { x: r.width / 2, y: r.height / 2 };
-      velRef.current = { x: 0, y: 0 };
     }
+    coreRef.current = { x: 0, y: 0 };
     stepRef.current = 0;
     placeWaypoint();
     startRef.current = performance.now();
@@ -96,49 +87,22 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
         finish(false);
         return;
       }
-      const C = coreRef.current;
-      const V = velRef.current;
-      const w = windRef.current;
-      const sz = sizeRef.current;
-      let ax = w.x;
-      let ay = w.y;
-      if (fingerRef.current && activeId.current !== null) {
-        ax += (fingerRef.current.x - C.x) * GRAB;
-        ay += (fingerRef.current.y - C.y) * GRAB;
-      }
-      V.x = (V.x + ax) * DAMP;
-      V.y = (V.y + ay) * DAMP;
-      C.x += V.x;
-      C.y += V.y;
-      // soft walls
-      if (C.x < CORE_R) {
-        C.x = CORE_R;
-        V.x *= -0.4;
-      } else if (C.x > sz.w - CORE_R) {
-        C.x = sz.w - CORE_R;
-        V.x *= -0.4;
-      }
-      if (C.y < CORE_R) {
-        C.y = CORE_R;
-        V.y *= -0.4;
-      } else if (C.y > sz.h - CORE_R) {
-        C.y = sz.h - CORE_R;
-        V.y *= -0.4;
-      }
+      const P = coreRef.current;
       const T = targetRef.current;
-      const speed = Math.hypot(V.x, V.y);
-      // Charge only while it's inside AND steadied — you must counter the current,
-      // not just blow through the ring.
-      const charging = Math.hypot(C.x - T.x, C.y - T.y) < TARGET_R && speed < STEADY_V;
-      const before = chargeRef.current;
-      chargeRef.current = charging
-        ? Math.min(1, chargeRef.current + 16 / CHARGE_MS)
-        : Math.max(0, chargeRef.current - 16 / (CHARGE_MS * 1.4));
-      if (charging && Math.floor(chargeRef.current * 4) > Math.floor(before * 4)) sfxTick();
+      const { w, h } = sizeRef.current;
+      // The force: pull the core back toward centre every frame.
+      P.x *= RETURN;
+      P.y *= RETURN;
 
-      setCore({ x: C.x, y: C.y });
-      setTarget({ x: T.x, y: T.y });
-      setWindAngle((Math.atan2(w.y, w.x) * 180) / Math.PI);
+      const inside = Math.hypot(P.x - T.x, P.y - T.y) < TARGET_R;
+      const before = chargeRef.current;
+      chargeRef.current = inside
+        ? Math.min(1, chargeRef.current + 16 / CHARGE_MS)
+        : Math.max(0, chargeRef.current - 16 / (CHARGE_MS * 1.3));
+      if (inside && Math.floor(chargeRef.current * 4) > Math.floor(before * 4)) sfxTick();
+
+      setCorePx({ x: w / 2 + P.x, y: h / 2 + P.y });
+      setTargetPx({ x: w / 2 + T.x, y: h / 2 + T.y });
       setCharge(chargeRef.current);
       setTimeLeft(frac);
 
@@ -161,28 +125,36 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const fieldPos = (e: React.PointerEvent): Vec | null => {
-    const el = fieldRef.current;
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  };
+  // Alternating-thumb model: only the FIRST touch drives; a second is tracked but
+  // can't push until the first lifts (no plant-and-pump) — same as the main scroll.
   const onDown = (e: React.PointerEvent) => {
-    ptrs.current.add(e.pointerId);
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (activeId.current === null) activeId.current = e.pointerId;
-    if (e.pointerId === activeId.current) fingerRef.current = fieldPos(e);
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
   };
   const onMove = (e: React.PointerEvent) => {
-    if (e.pointerId !== activeId.current) return;
-    fingerRef.current = fieldPos(e);
+    const p = ptrs.current.get(e.pointerId);
+    if (!p) return;
+    const dx = e.clientX - p.x;
+    const dy = e.clientY - p.y;
+    p.x = e.clientX; // keep every finger current so a handoff doesn't jump
+    p.y = e.clientY;
+    if (e.pointerId !== activeId.current) return; // only the active touch pushes
+    const P = coreRef.current;
+    const resist = 1 / (1 + K * Math.hypot(P.x, P.y)); // harder the further out
+    P.x += dx * resist * GAIN;
+    P.y += dy * resist * GAIN;
+    const { w, h } = sizeRef.current;
+    const mx = w / 2 - CORE_R;
+    const my = h / 2 - CORE_R;
+    P.x = Math.max(-mx, Math.min(mx, P.x));
+    P.y = Math.max(-my, Math.min(my, P.y));
   };
   const onUp = (e: React.PointerEvent) => {
     ptrs.current.delete(e.pointerId);
     if (e.pointerId === activeId.current) {
-      const next = ptrs.current.values().next();
-      activeId.current = next.done ? null : next.value; // hand off to the other thumb
-      if (activeId.current === null) fingerRef.current = null;
+      const nextKey = ptrs.current.keys().next();
+      activeId.current = nextKey.done ? null : nextKey.value; // promote the other thumb
     }
   };
 
@@ -192,13 +164,13 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
         <div className="mini__badge">◆</div>
         <div className="mini__head">CHECKPOINT</div>
         <p className="mini__intro-text">
-          Drag the <strong>core</strong> into each ring and <strong>hold it steady</strong> until it
-          locks — but a <strong>current</strong> keeps pushing it off course, and the core carries
-          momentum. Steer against the pull.
+          Same as the scroll: <strong>swipe</strong> to push the core, <strong>alternating
+          thumbs</strong> — and it gets harder the further out it goes. A force keeps pulling it
+          back to centre.
         </p>
         <p className="mini__intro-text">
-          Lock all <strong>{STEPS} rings</strong> before the timer to launch deep. You keep your
-          depth either way.
+          Keep swiping <strong>toward each ring</strong> to hold the core inside until it locks. Clear
+          all {STEPS} before the timer. You keep your depth either way.
         </p>
         <button
           className="btn btn--primary"
@@ -217,13 +189,13 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
   }
 
   return (
-    <div className="mini" role="dialog" aria-label="Steady the core minigame">
+    <div className="mini" role="dialog" aria-label="Push the core minigame">
       <div className="mini__time">
         <div className="mini__time-bar" style={{ width: `${timeLeft * 100}%` }} />
       </div>
-      <div className="mini__head">◆ STEADY THE CORE</div>
+      <div className="mini__head">◆ PUSH THE CORE</div>
       <div className="mini__sub">
-        hold the core in the ring · {step + 1}/{STEPS}
+        swipe toward the ring · alternate thumbs · {step + 1}/{STEPS}
       </div>
 
       <div
@@ -234,13 +206,8 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
         onPointerUp={onUp}
         onPointerCancel={onUp}
       >
-        <div className="mini__wind">
-          <span className="mini__wind-arrow" style={{ transform: `rotate(${windAngle}deg)` }}>
-            ➤
-          </span>
-          <span className="mini__wind-label">current</span>
-        </div>
-        <div className="mini__ring" style={{ left: `${target.x}px`, top: `${target.y}px` }}>
+        <div className="mini__origin" />
+        <div className="mini__ring" style={{ left: `${targetPx.x}px`, top: `${targetPx.y}px` }}>
           <div
             className="mini__ring-fill"
             style={{ transform: `translate(-50%, -50%) scale(${charge})` }}
@@ -248,7 +215,7 @@ export function MiniGame({ onDone }: { onDone: (success: boolean) => void }) {
         </div>
         <div
           className={'mini__node' + (charge > 0 ? ' is-charging' : '')}
-          style={{ left: `${core.x}px`, top: `${core.y}px` }}
+          style={{ left: `${corePx.x}px`, top: `${corePx.y}px` }}
         />
       </div>
 
