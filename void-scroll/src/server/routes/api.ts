@@ -22,13 +22,29 @@ async function bestFor(username: string | null): Promise<number> {
   return score ? Math.round(score) : 0;
 }
 
-// Who am I + my best (called once on load).
+// Lifetime total — every run's score is added here (cumulative, never resets).
+async function lifetimeFor(username: string | null): Promise<number> {
+  if (!username) return 0;
+  const raw = await redis.get(`lifetime:${username}`);
+  return raw ? Math.max(0, parseInt(raw, 10) || 0) : 0;
+}
+
+// Raise the global best (if higher) AND add the run to the lifetime total.
+async function recordRun(username: string, score: number): Promise<{ best: number; lifetime: number }> {
+  const prev = (await redis.zScore(LB, username)) ?? 0;
+  if (score > prev) await redis.zAdd(LB, { member: username, score });
+  const lifetime = score > 0 ? await redis.incrBy(`lifetime:${username}`, score) : await lifetimeFor(username);
+  return { best: Math.round(Math.max(prev, score)), lifetime };
+}
+
+// Who am I + my best + lifetime (called once on load).
 api.get('/init', async (c) => {
   const username = (await reddit.getCurrentUsername()) ?? null;
   return c.json<InitResponse>({
     type: 'init',
     username,
     best: await bestFor(username),
+    lifetime: await lifetimeFor(username),
     postId: context.postId ?? null,
   });
 });
@@ -56,18 +72,14 @@ api.post('/score', async (c) => {
   const body = await c.req.json<{ score?: number; level?: number }>();
   const score = Math.max(0, Math.round(body.score ?? 0));
 
-  const prev = (await redis.zScore(LB, username)) ?? 0;
-  if (score > prev) {
-    await redis.zAdd(LB, { member: username, score });
-  }
-  const best = Math.round(Math.max(prev, score));
+  const { best, lifetime } = await recordRun(username, score);
 
   // zRank is 0-based ascending (lowest first); convert to 1-based highest-first.
   const card = await redis.zCard(LB);
   const rankAsc = await redis.zRank(LB, username);
   const rank = rankAsc == null ? null : card - rankAsc;
 
-  return c.json<ScoreResponse>({ best, rank });
+  return c.json<ScoreResponse>({ best, rank, lifetime });
 });
 
 // ------------------------------------------------------------------------ Share
@@ -211,5 +223,8 @@ api.post('/daily-score', async (c) => {
   const rank = await rankIn(board, username);
   const streak = await bumpStreak(username);
 
-  return c.json<DailyScoreResponse>({ best, rank, streak });
+  // A daily run also counts toward your global best + lifetime total.
+  const { lifetime } = await recordRun(username, score);
+
+  return c.json<DailyScoreResponse>({ best, rank, streak, lifetime });
 });

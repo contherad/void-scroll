@@ -36,6 +36,7 @@ import {
   submitProgress,
   shareRun,
   hasCurrentUser,
+  getLifetime,
   type ScoreEntry,
 } from './lib/api';
 
@@ -277,6 +278,7 @@ function IdleScreen({
   const [top, setTop] = useState<ScoreEntry[]>([]);
   const [dailyBest, setDailyBest] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [lifetime, setLifetime] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -293,6 +295,9 @@ function IdleScreen({
           setDailyBest(d.best);
           setStreak(d.streak);
         }
+      }),
+      getLifetime().then((l) => {
+        if (alive) setLifetime(l);
       }),
     ]).then(() => {
       if (alive) setLoading(false);
@@ -316,6 +321,7 @@ function IdleScreen({
           <>
             <div className="idle__stat idle__stat--skel" />
             <div className="idle__stat idle__stat--skel" />
+            <div className="idle__stat idle__stat--skel" />
           </>
         ) : (
           <>
@@ -326,6 +332,10 @@ function IdleScreen({
             <div className="idle__stat">
               <span className="idle__stat-n">{streak > 0 ? `🔥 ${streak}` : '—'}</span>
               <span className="idle__stat-l">day streak</span>
+            </div>
+            <div className="idle__stat">
+              <span className="idle__stat-n">{lifetime > 0 ? lifetime.toLocaleString() : '—'}</span>
+              <span className="idle__stat-l">lifetime</span>
             </div>
           </>
         )}

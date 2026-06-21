@@ -28,10 +28,15 @@ async function jget<T>(url: string): Promise<T> {
 }
 
 /** Call once on load: resolves the current user (for leaderboard highlighting). */
-export async function init(): Promise<{ username: string | null; best: number }> {
+export async function init(): Promise<{ username: string | null; best: number; lifetime: number }> {
   const d = await jget<InitResponse>('/api/init');
   currentUser = d.username;
-  return { username: d.username, best: d.best };
+  return { username: d.username, best: d.best, lifetime: d.lifetime };
+}
+
+/** Cumulative lifetime total across every run. */
+export async function getLifetime(): Promise<number> {
+  return (await jget<InitResponse>('/api/init')).lifetime;
 }
 
 export async function getLeaderboard(limit = 10): Promise<ScoreEntry[]> {
@@ -46,7 +51,7 @@ export async function getUserBest(): Promise<number> {
 export async function submitScore(
   score: number,
   level: number,
-): Promise<{ best: number; rank: number | null }> {
+): Promise<{ best: number; rank: number | null; lifetime: number }> {
   const r = await fetch('/api/score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -104,7 +109,7 @@ export async function getDaily(): Promise<DailyResponse> {
 
 export async function submitDailyScore(
   score: number,
-): Promise<{ best: number; rank: number | null; streak: number }> {
+): Promise<{ best: number; rank: number | null; streak: number; lifetime: number }> {
   const r = await fetch('/api/daily-score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -4,13 +4,14 @@ export type InitResponse = {
   type: 'init';
   username: string | null;
   best: number;
+  lifetime: number;
   postId: string | null;
 };
 
 export type LeaderboardEntry = { username: string; score: number };
 export type LeaderboardResponse = { entries: LeaderboardEntry[] };
 export type BestResponse = { best: number };
-export type ScoreResponse = { best: number; rank: number | null };
+export type ScoreResponse = { best: number; rank: number | null; lifetime: number };
 
 // Daily Descent: one shared seeded run per day, with its own board + streaks.
 export type DailyResponse = {
@@ -21,7 +22,12 @@ export type DailyResponse = {
   rank: number | null; // your rank today
   streak: number; // consecutive days played
 };
-export type DailyScoreResponse = { best: number; rank: number | null; streak: number };
+export type DailyScoreResponse = {
+  best: number;
+  rank: number | null;
+  streak: number;
+  lifetime: number;
+};
 
 // Campaign progress: highest unlocked level (1..6, where 6 = Endless).
 export type ProgressResponse = { unlocked: number };
