@@ -188,6 +188,14 @@ now−prev). (`shared/achievements.ts`, `server/api.ts`, `lib/api.ts`, `App`, `L
   Added a pulsing "⬆ swipe up to resume — your depth is safe" hint while parked
   (`held` state exposed from the hook). (`useSwipePhysics`, `App`, `styles.css`)
 
+## Round 14 (user feedback)
+- ✅ **Three leaderboards behind tabs** on the results screen: **All-time** (deepest),
+  **Today** (daily board), **Streak** (longest-streak-ever). Added a `leaderboard:streak`
+  sorted set updated in `bumpStreak` (records each user's max streak) + a
+  `/streak-leaderboard` route; results screen fetches all three and tabs between them
+  (default = the run's own board). Streak rewards the habit, not just skill — strongest
+  daily-return pull. (`server/api.ts`, `lib/api.ts`, `Leaderboard` tabs, `App`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

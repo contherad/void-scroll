@@ -54,6 +54,12 @@ export async function getUserBest(): Promise<number> {
   return (await jget<BestResponse>('/api/user-best')).best;
 }
 
+/** Longest-streak leaderboard (top streaks ever). */
+export async function getStreakBoard(limit = 10): Promise<ScoreEntry[]> {
+  const d = await jget<LeaderboardResponse>('/api/streak-leaderboard');
+  return d.entries.slice(0, limit);
+}
+
 export async function submitScore(
   score: number,
   level: number,

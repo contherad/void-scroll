@@ -29,6 +29,7 @@ import { sfxTick, sfxThunk, sfxSting, sfxSwell, buzz, setMuted, isMuted } from '
 import {
   init,
   getLeaderboard,
+  getStreakBoard,
   getUserBest,
   submitScore,
   getDaily,
@@ -763,7 +764,9 @@ function LeaderboardScreen({
   level: number;
   onPlayAgain: () => void;
 }) {
-  const [entries, setEntries] = useState<ScoreEntry[]>([]);
+  const [allBoard, setAllBoard] = useState<ScoreEntry[]>([]);
+  const [todayBoard, setTodayBoard] = useState<ScoreEntry[]>([]);
+  const [streakBoard, setStreakBoard] = useState<ScoreEntry[]>([]);
   const [rank, setRank] = useState<number | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
   const [newAch, setNewAch] = useState<string[]>([]);
@@ -773,24 +776,33 @@ function LeaderboardScreen({
     let alive = true;
     void (async () => {
       try {
+        // Submit the run first (so the boards reflect it), then pull all three.
         if (mode === 'daily') {
           const r = await submitDailyScore(finalScore);
-          const d = await getDaily();
-          if (!alive) return;
-          setEntries(d.entries);
-          setRank(d.rank);
-          setStreak(d.streak);
-          setNewAch(r.newAchievements);
+          if (alive) {
+            setRank(r.rank);
+            setStreak(r.streak);
+            setNewAch(r.newAchievements);
+          }
         } else {
           const r = await submitScore(finalScore, level);
-          const board = await getLeaderboard(10);
-          if (!alive) return;
-          setRank(r.rank);
-          setEntries(board);
-          setNewAch(r.newAchievements);
+          if (alive) {
+            setRank(r.rank);
+            setNewAch(r.newAchievements);
+          }
         }
+        const [all, daily, streaks] = await Promise.all([
+          getLeaderboard(10),
+          getDaily(),
+          getStreakBoard(10),
+        ]);
+        if (!alive) return;
+        setAllBoard(all);
+        setTodayBoard(daily.entries);
+        setStreakBoard(streaks);
+        if (mode !== 'daily') setStreak(daily.streak);
       } catch {
-        /* keep whatever we have; show empty board */
+        /* keep whatever we have; show empty boards */
       } finally {
         if (alive) setLoading(false);
       }
@@ -812,7 +824,12 @@ function LeaderboardScreen({
   const daily = mode === 'daily';
   return (
     <Leaderboard
-      entries={entries}
+      boards={[
+        { id: 'all', label: 'All-time', entries: allBoard, unit: 'depth' },
+        { id: 'today', label: 'Today', entries: todayBoard, unit: 'depth' },
+        { id: 'streak', label: 'Streak', entries: streakBoard, unit: 'days' },
+      ]}
+      defaultTab={daily ? 'today' : 'all'}
       finalScore={finalScore}
       rank={rank}
       loading={loading}

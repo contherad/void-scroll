@@ -768,6 +768,34 @@ body {
 }
 
 /* ---------------------------------------------------------- Leaderboard */
+/* Tabs to switch between the three boards. */
+.lbtabs {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  margin: 10px 0 6px;
+  padding: 3px;
+  background: #161616;
+  border: 1px solid #1f1f1f;
+  border-radius: 10px;
+}
+.lbtabs__tab {
+  flex: 1;
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.lbtabs__tab.is-active {
+  background: rgba(107, 138, 253, 0.18);
+  color: #cdd6ff;
+}
 .leaderboard {
   width: 100%;
   border: 1px solid #1f1f1f;

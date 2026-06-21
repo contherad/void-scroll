@@ -217,8 +217,19 @@ async function bumpStreak(username: string): Promise<number> {
   if (s.last === today) return s.count; // already counted today
   const count = s.last === dayKey(-1) ? s.count + 1 : 1;
   await redis.set(key, JSON.stringify({ count, last: today }));
+  // Record longest-streak-ever on the streak leaderboard.
+  const prevBest = (await redis.zScore(STREAK_LB, username)) ?? 0;
+  if (count > prevBest) await redis.zAdd(STREAK_LB, { member: username, score: count });
   return count;
 }
+
+// Longest-streak leaderboard (top 10, highest first).
+api.get('/streak-leaderboard', async (c) => {
+  const rows = await redis.zRange(STREAK_LB, 0, 9, { reverse: true, by: 'rank' });
+  return c.json<LeaderboardResponse>({
+    entries: rows.map((r) => ({ username: r.member, score: Math.round(r.score) })),
+  });
+});
 
 // Today's shared run: seed (feed order), daily board, your best/rank, your streak.
 api.get('/daily', async (c) => {

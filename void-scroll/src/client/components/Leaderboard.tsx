@@ -1,13 +1,23 @@
-// Leaderboard.tsx — Post-run board (global all-time, or the daily descent board).
+// Leaderboard.tsx — Post-run results: your score + rank, any badge unlocks, and
+// three browsable boards (All-time depth / Today / Longest streak) behind tabs.
 
+import { useState } from 'react';
 import { isCurrentUser, type ScoreEntry } from '../lib/api';
 import { achievementById, type AchievementDef } from '../../shared/achievements';
 
-interface Props {
+export interface LbBoard {
+  id: string;
+  label: string;
   entries: ScoreEntry[];
+  unit: 'depth' | 'days';
+}
+
+interface Props {
   finalScore: number;
   rank: number | null;
   loading: boolean;
+  boards: LbBoard[];
+  defaultTab: string;
   onPlayAgain: () => void;
   title?: string;
   rankNoun?: string; // "the void" (global) or "today's descent" (daily)
@@ -26,11 +36,16 @@ const SHARE_LABEL: Record<NonNullable<Props['shareState']>, string> = {
   failed: '✗ Couldn’t share — try again',
 };
 
+function fmt(score: number, unit: 'depth' | 'days'): string {
+  return unit === 'days' ? `🔥 ${score}` : score.toLocaleString();
+}
+
 export function Leaderboard({
-  entries,
   finalScore,
   rank,
   loading,
+  boards,
+  defaultTab,
   onPlayAgain,
   title = 'Run complete',
   rankNoun = 'the void',
@@ -41,9 +56,12 @@ export function Leaderboard({
   shareState = 'idle',
   newAchievements = [],
 }: Props) {
+  const [tab, setTab] = useState(defaultTab);
+  const active = boards.find((b) => b.id === tab) ?? boards[0];
   const unlocked = newAchievements
     .map(achievementById)
     .filter((a): a is AchievementDef => a != null);
+
   return (
     <div className="overlay">
       <div className="overlay__panel overlay__panel--wide">
@@ -71,13 +89,25 @@ export function Leaderboard({
           </div>
         )}
 
+        <div className="lbtabs">
+          {boards.map((b) => (
+            <button
+              key={b.id}
+              className={'lbtabs__tab' + (b.id === active?.id ? ' is-active' : '')}
+              onClick={() => setTab(b.id)}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+
         <div className="leaderboard">
           {loading ? (
             <div className="leaderboard__loading">Reading the void…</div>
-          ) : entries.length === 0 ? (
+          ) : !active || active.entries.length === 0 ? (
             <div className="leaderboard__loading">No scores yet — you just set the bar.</div>
           ) : (
-            entries.map((entry, i) => (
+            active.entries.map((entry, i) => (
               <div
                 key={`${entry.username}-${i}`}
                 className={
@@ -86,7 +116,7 @@ export function Leaderboard({
               >
                 <span className="leaderboard__rank">{i + 1}</span>
                 <span className="leaderboard__name">{entry.username}</span>
-                <span className="leaderboard__score">{entry.score.toLocaleString()}</span>
+                <span className="leaderboard__score">{fmt(entry.score, active.unit)}</span>
               </div>
             ))
           )}
