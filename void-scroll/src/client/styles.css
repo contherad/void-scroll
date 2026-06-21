@@ -1435,3 +1435,44 @@ body {
   margin-left: auto;
   text-align: right;
 }
+
+/* ----------------------------------------------- New personal best celebration */
+.pb {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 30%;
+}
+.pb__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 50% 50%, transparent 48%, rgba(255, 196, 84, 0.22) 100%);
+  animation: pbGlow 2.2s ease forwards;
+}
+.pb__text {
+  font-family: var(--mono);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ffd98a;
+  text-shadow: 0 0 26px rgba(255, 196, 84, 0.85);
+  white-space: nowrap;
+  animation: pbPop 2.2s ease forwards;
+}
+@keyframes pbGlow {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes pbPop {
+  0% { opacity: 0; transform: scale(0.6); }
+  16% { opacity: 1; transform: scale(1.15); }
+  28% { transform: scale(1); }
+  72% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05) translateY(-12px); }
+}

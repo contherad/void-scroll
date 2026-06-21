@@ -618,11 +618,43 @@ function Game({
     }
   }, [endless, physics.best]);
 
+  // New personal best — a one-time celebration the first time THIS run surpasses
+  // your all-time best (captured at run start). New players with no prior record are
+  // covered by the milestone cheers instead, so this only fires for a real PB.
+  const prevBestRef = useRef(0);
+  const pbDoneRef = useRef(false);
+  const [pb, setPb] = useState(false);
+  const pbTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (!endless) return;
+    let alive = true;
+    void getUserBest()
+      .then((b) => {
+        if (alive) prevBestRef.current = b;
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [endless]);
+  useEffect(() => {
+    if (!endless || pbDoneRef.current) return;
+    if (prevBestRef.current > 0 && physics.best > prevBestRef.current) {
+      pbDoneRef.current = true;
+      setPb(true);
+      sfxSwell();
+      buzz([20, 40, 20]);
+      if (pbTimer.current) clearTimeout(pbTimer.current);
+      pbTimer.current = window.setTimeout(() => setPb(false), 2200);
+    }
+  }, [endless, physics.best]);
+
   useEffect(() => () => {
     if (milestoneTimer.current) clearTimeout(milestoneTimer.current);
     if (phraseTimer.current) clearTimeout(phraseTimer.current);
     if (orbTimer.current) clearTimeout(orbTimer.current);
     if (gateFlashTimer.current) clearTimeout(gateFlashTimer.current);
+    if (pbTimer.current) clearTimeout(pbTimer.current);
   }, []);
 
   const handleEnd = useCallback(() => onEndRun(physics.best), [onEndRun, physics.best]);
@@ -755,6 +787,12 @@ function Game({
       )}
       {physics.held && !inMini && (
         <div className="coach coach--resume">⬆ swipe up to resume — your depth is safe</div>
+      )}
+      {pb && (
+        <div className="pb" aria-hidden="true">
+          <div className="pb__glow" />
+          <div className="pb__text">✦ NEW PERSONAL BEST</div>
+        </div>
       )}
       <div className="toasts">
         {events.event && <EventBanner event={events.event} />}

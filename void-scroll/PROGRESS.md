@@ -201,6 +201,14 @@ now−prev). (`shared/achievements.ts`, `server/api.ts`, `lib/api.ts`, `App`, `L
   tabs (top 5 each, default All-time), matching the results screen. Reuses `.lbtabs`;
   pulls `getLeaderboard(5)`, `getDaily().entries`, `getStreakBoard(5)`. (`App` IdleScreen)
 
+## Round 16 (autonomous /loop — game-feel research → improvement)
+Research: the strongest "one more run" moment — **beating your personal best** — was
+silent (best just ticked up in the HUD). Added a **New Personal Best celebration**: the
+first time a run surpasses your all-time best (captured at run start via `getUserBest`),
+a gold "✦ NEW PERSONAL BEST" pops with a screen glow + swell + haptic. Fires once per
+run, gated to real records (prevBest > 0, so new players get milestones instead) and to
+endless/daily. (`App` Game: prevBestRef/pbDoneRef/pb state, `styles.css` .pb)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the
