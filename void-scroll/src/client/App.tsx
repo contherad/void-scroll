@@ -9,6 +9,7 @@ import { LevelTransition } from './components/LevelTransition';
 import { Leaderboard } from './components/Leaderboard';
 import { MilestoneToast } from './components/MilestoneToast';
 import { EventBanner } from './components/EventBanner';
+import { MiniGame } from './components/MiniGame';
 import { useSwipePhysics } from './hooks/useSwipePhysics';
 import { useVoidEvents } from './hooks/useVoidEvents';
 import { useBonusOrbs, ORB_BOOST } from './hooks/useBonusOrbs';
@@ -440,7 +441,10 @@ function Game({
   // Secret phrase: ONLY in endless/daily (no clear threshold to cut the letters
   // off). Endless cycles through a SEQUENCE of words — complete one, launch, the
   // next appears ahead. Campaign levels are a pure climb — empty phrase, no letters.
-  const [seed] = useState(() => dateSeed() ^ level);
+  // Daily is date-seeded (shared puzzle); a free endless run gets fresh random words.
+  const [seed] = useState(() =>
+    daily ? dateSeed() ^ level : (Math.floor(Math.random() * 0x100000000) >>> 0) || 1,
+  );
   const [wordIndex, setWordIndex] = useState(0);
   const [phrase, setPhrase] = useState(() => (isEndless(level) ? phraseFor(seed) : ''));
   const [letterMap, setLetterMap] = useState(() =>
@@ -456,6 +460,12 @@ function Game({
   // Bonus-orb pickup feedback.
   const [orbToast, setOrbToast] = useState<string | null>(null);
   const orbTimer = useRef<number | null>(null);
+
+  // Checkpoint gate: collect GATE_AT orbs to open a mini-game for a big reward.
+  const GATE_AT = 4;
+  const orbsRef = useRef(0);
+  const [gateReady, setGateReady] = useState(false);
+  const [inMini, setInMini] = useState(false);
 
   const handleCollect = useCallback((order: number) => {
     if (collectedRef.current.has(order)) return; // already collected — ignore
@@ -500,6 +510,22 @@ function Game({
     setPhrase(nextWord);
     setCollected(new Set());
     setLetterMap(letterSlots(nextWord, seed ^ (nextIndex * 0x9e3779b1), landingIndex));
+  };
+
+  // Leaving the checkpoint mini-game: a win slingshots you deep; either way the
+  // gate is consumed (collect more orbs to open the next one).
+  const endMini = (success: boolean) => {
+    setInMini(false);
+    setGateReady(false);
+    orbsRef.current = 0;
+    if (success) {
+      slingshot(1800);
+      sfxSwell();
+      buzz([14, 28, 14]);
+      setPhraseToast('✦ GATE CLEARED · +depth!');
+      if (phraseTimer.current) clearTimeout(phraseTimer.current);
+      phraseTimer.current = window.setTimeout(() => setPhraseToast(null), 1500);
+    }
   };
 
   // Endless milestones — cheer the first time `best` crosses each threshold.
@@ -587,18 +613,47 @@ function Game({
             sfxSting();
             buzz(12);
             bonus.remove(o.id);
-            setOrbToast(o.kind === 'rush' ? `⚡ RUSH +${ORB_BOOST.rush}` : `💠 +${ORB_BOOST.spark}`);
+            // Count toward the checkpoint gate.
+            let gateNote = '';
+            if (!gateReady && !inMini) {
+              orbsRef.current += 1;
+              if (orbsRef.current >= GATE_AT) {
+                setGateReady(true);
+                gateNote = ' · ◆ GATE!';
+              } else {
+                gateNote = ` · ◆ ${orbsRef.current}/${GATE_AT}`;
+              }
+            }
+            const base = o.kind === 'rush' ? `⚡ RUSH +${ORB_BOOST.rush}` : `💠 +${ORB_BOOST.spark}`;
+            setOrbToast(base + gateNote);
             if (orbTimer.current) clearTimeout(orbTimer.current);
-            orbTimer.current = window.setTimeout(() => setOrbToast(null), 900);
+            orbTimer.current = window.setTimeout(() => setOrbToast(null), 1100);
           }}
         >
           {o.kind === 'rush' ? '⚡' : '💠'}
         </button>
       ))}
+      {gateReady && !inMini && !launchReady && (
+        <button
+          className="gate"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            sfxSting();
+            setInMini(true);
+          }}
+        >
+          <span className="gate__icon">◆</span>
+          <span className="gate__cta">CHECKPOINT</span>
+          <span className="gate__sub">tap to enter the gate</span>
+        </button>
+      )}
       {events.event && <EventBanner event={events.event} />}
-      {milestone && <MilestoneToast message={milestone} />}
-      {phraseToast && <MilestoneToast message={phraseToast} />}
-      {orbToast && <MilestoneToast message={orbToast} />}
+      <div className="toasts">
+        {milestone && <MilestoneToast message={milestone} />}
+        {phraseToast && <MilestoneToast message={phraseToast} />}
+        {orbToast && <MilestoneToast message={orbToast} />}
+      </div>
+      {inMini && <MiniGame onDone={endMini} />}
     </div>
   );
 }
