@@ -385,6 +385,90 @@ body {
   text-transform: uppercase;
   color: #4f4f4f;
 }
+/* Compact textual depth readout (the bar itself is the vertical gauge, right). */
+.hud__readout {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.hud__readout--record {
+  color: #8ef0b4;
+}
+
+/* Vertical depth gauge on the right edge — fills from the TOP DOWN as you descend. */
+.depthgauge {
+  position: absolute;
+  top: 16%;
+  bottom: 16%;
+  right: 9px;
+  width: 6px;
+  z-index: 3;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  pointer-events: none;
+}
+.depthgauge__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, #8ea2ff, var(--void));
+  border-radius: 3px;
+}
+.depthgauge__fill.is-record {
+  background: linear-gradient(180deg, #8ef0b4, #2fd479);
+}
+
+/* Gate pattern strip — the orb sequence to collect (in order) to open a gate. */
+.gatebar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 14px;
+  transition: transform 0.1s ease;
+}
+.gatebar--flash {
+  animation: gateFlash 0.45s ease;
+}
+.gatebar__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #6b6f8a;
+  margin-right: 4px;
+}
+.gatebar__pip {
+  opacity: 0.3;
+  filter: grayscale(0.6);
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+.gatebar__pip.is-got {
+  opacity: 1;
+  filter: none;
+  text-shadow: 0 0 10px rgba(107, 138, 253, 0.7);
+}
+@keyframes gateFlash {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
 .hud__progress {
   position: relative;
   height: 6px;

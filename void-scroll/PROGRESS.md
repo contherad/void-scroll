@@ -137,6 +137,23 @@ type-check + lint + build green (`npm run type-check && npm run lint && npm run 
 - ✅ **Random word order**: a free endless run now uses a fresh random seed, so the
   word sequence differs every play; Daily stays date-seeded (shared). (`App` Game)
 
+## Round 9 (user feedback)
+- ✅ **Mini-game no longer resets you to 0**: new `physics.hold()` freezes the feed
+  while the gate is open; a win slingshots and **parks** at the reward until you grab
+  (glide skips auto-fall while held). (`useSwipePhysics`, `App`)
+- ✅ **Gate is tappable mid-scroll** again (`onPointerDown` + stopPropagation).
+- ✅ **Mini-game intro + entry animation**: first-time how-to card ("Begin →") + a
+  scale/fade-in; countdown only runs once playing. (`MiniGame`)
+- ✅ **Mini-game jumpiness fixed**: per-pointer active-touch model (alternating-thumb
+  handoff, no leap) + per-move cap. (`MiniGame`)
+- ✅ **Gate = orb PATTERN**: collect a random sequence (length 5–9, mixed ⚡/💠) IN
+  ORDER; a wrong kind resets it (shake + ✗). Re-rolls each gate. Shown as a HUD pip
+  strip. (`App`, `HUD`)
+- ✅ **Vertical depth gauge**: progress moved off the top to a right-edge bar that
+  fills top→down (endless = toward best, campaign = toward clear); the event banner
+  moved into the bottom toast stack — fixes the "Surge…" / progress-bar overlap.
+  (`HUD`, `App`, `EventBanner`, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the
