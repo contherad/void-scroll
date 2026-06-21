@@ -154,6 +154,14 @@ type-check + lint + build green (`npm run type-check && npm run lint && npm run 
   moved into the bottom toast stack — fixes the "Surge…" / progress-bar overlap.
   (`HUD`, `App`, `EventBanner`, `styles.css`)
 
+## Round 10 (user feedback)
+- ✅ **Mini-game redesigned** from a 4-direction fill to a **2D steering task**
+  ("Steady the Core"): drag a core orb (momentum) into each of 5 waypoint rings and
+  hold it steady to charge it, while a **current** (constant force) drifts it off
+  course and **changes direction every waypoint**. Charge only builds when the core
+  is inside AND slow (must counter the force, not blow through). Continuous physics
+  sim (spring-to-finger + wind + damping), per-pointer steering. (`MiniGame`, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

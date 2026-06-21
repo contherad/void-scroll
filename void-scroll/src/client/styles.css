@@ -1131,75 +1131,65 @@ body {
   justify-content: center;
   touch-action: none;
 }
-.mini__core {
-  position: relative;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.mini__field {
+  /* faint grid so movement/drift reads clearly */
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 26px 26px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
-.mini__core::after {
-  content: '';
+/* The waypoint ring you must hold the core inside. */
+.mini__ring {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px dashed rgba(142, 162, 255, 0.7);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 22px rgba(107, 138, 253, 0.3);
+}
+.mini__ring-fill {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 120px;
-  height: 120px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  background: #0d0d12;
-  border: 1px solid #23263a;
-  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(142, 162, 255, 0.85), rgba(107, 138, 253, 0.3));
 }
-.mini__core-pct {
-  position: relative;
-  z-index: 1;
-  font-family: var(--mono);
-  font-size: 26px;
-  font-weight: 700;
-  color: #cdd6ff;
-}
-.mini__arrow {
+/* The core you steer. */
+.mini__node {
   position: absolute;
-  font-size: 38px;
-  color: #8ea2ff;
-  text-shadow: 0 0 16px rgba(107, 138, 253, 0.7);
-  animation-duration: 0.9s;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 30%, #fff, #8ea2ff 55%, #4d63c7);
+  box-shadow: 0 0 20px rgba(142, 162, 255, 0.75);
+  pointer-events: none;
 }
-.mini__arrow--up {
-  top: 4%;
-  animation-name: miniArrowUp;
+.mini__node.is-charging {
+  box-shadow: 0 0 26px rgba(142, 240, 180, 0.9);
 }
-.mini__arrow--down {
-  bottom: 4%;
-  animation-name: miniArrowDown;
+/* Current/force indicator. */
+.mini__wind {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b6f8a;
+  pointer-events: none;
 }
-.mini__arrow--left {
-  left: 6%;
-  animation-name: miniArrowLeft;
-}
-.mini__arrow--right {
-  right: 6%;
-  animation-name: miniArrowRight;
-}
-@keyframes miniArrowUp {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-9px); }
-}
-@keyframes miniArrowDown {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(9px); }
-}
-@keyframes miniArrowLeft {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-9px); }
-}
-@keyframes miniArrowRight {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(9px); }
+.mini__wind-arrow {
+  display: inline-block;
+  font-size: 18px;
+  color: #c98a8a;
+  text-shadow: 0 0 10px rgba(201, 138, 138, 0.7);
 }
 .mini__dots {
   display: flex;
