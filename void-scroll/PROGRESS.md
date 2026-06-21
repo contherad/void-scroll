@@ -196,6 +196,11 @@ now−prev). (`shared/achievements.ts`, `server/api.ts`, `lib/api.ts`, `App`, `L
   (default = the run's own board). Streak rewards the habit, not just skill — strongest
   daily-return pull. (`server/api.ts`, `lib/api.ts`, `Leaderboard` tabs, `App`)
 
+## Round 15 (user feedback)
+- ✅ **Menu leaderboards tabbed too**: the home board is now All-time / Today / Streak
+  tabs (top 5 each, default All-time), matching the results screen. Reuses `.lbtabs`;
+  pulls `getLeaderboard(5)`, `getDaily().entries`, `getStreakBoard(5)`. (`App` IdleScreen)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

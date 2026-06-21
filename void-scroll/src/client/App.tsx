@@ -293,7 +293,10 @@ function IdleScreen({
   onStartDaily: () => void;
 }) {
   const [best, setBest] = useState(0);
-  const [top, setTop] = useState<ScoreEntry[]>([]);
+  const [allBoard, setAllBoard] = useState<ScoreEntry[]>([]);
+  const [todayBoard, setTodayBoard] = useState<ScoreEntry[]>([]);
+  const [streakBoard, setStreakBoard] = useState<ScoreEntry[]>([]);
+  const [boardTab, setBoardTab] = useState('all');
   const [dailyBest, setDailyBest] = useState(0);
   const [streak, setStreak] = useState(0);
   const [lifetime, setLifetime] = useState(0);
@@ -306,13 +309,17 @@ function IdleScreen({
       getUserBest().then((b) => {
         if (alive) setBest(b);
       }),
-      getLeaderboard(3).then((t) => {
-        if (alive) setTop(t);
+      getLeaderboard(5).then((t) => {
+        if (alive) setAllBoard(t);
+      }),
+      getStreakBoard(5).then((t) => {
+        if (alive) setStreakBoard(t);
       }),
       getDaily().then((d) => {
         if (alive) {
           setDailyBest(d.best);
           setStreak(d.streak);
+          setTodayBoard(d.entries.slice(0, 5));
         }
       }),
       getMenuStats().then((s) => {
@@ -328,6 +335,13 @@ function IdleScreen({
       alive = false;
     };
   }, []);
+
+  const menuBoards = [
+    { id: 'all', label: 'All-time', entries: allBoard, unit: 'depth', empty: 'Be the first to descend.' },
+    { id: 'today', label: 'Today', entries: todayBoard, unit: 'depth', empty: 'No descents today yet.' },
+    { id: 'streak', label: 'Streak', entries: streakBoard, unit: 'days', empty: 'No streaks yet.' },
+  ];
+  const activeBoard = menuBoards.find((b) => b.id === boardTab) ?? menuBoards[0]!;
 
   return (
     <div className="idle">
@@ -384,22 +398,32 @@ function IdleScreen({
       </div>
 
       <div className="idle__board">
-        <div className="idle__board-title">Deepest descents</div>
+        <div className="lbtabs lbtabs--menu">
+          {menuBoards.map((b) => (
+            <button
+              key={b.id}
+              className={'lbtabs__tab' + (b.id === activeBoard.id ? ' is-active' : '')}
+              onClick={() => setBoardTab(b.id)}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
         {loading ? (
           <>
             <div className="idle__board-row idle__board-row--skel" />
             <div className="idle__board-row idle__board-row--skel" />
             <div className="idle__board-row idle__board-row--skel" />
           </>
-        ) : top.length === 0 ? (
-          <div className="idle__board-empty">Be the first to descend.</div>
+        ) : activeBoard.entries.length === 0 ? (
+          <div className="idle__board-empty">{activeBoard.empty}</div>
         ) : (
-          top.map((e, i) => (
+          activeBoard.entries.map((e, i) => (
             <div className="idle__board-row" key={`${e.username}-${i}`}>
               <span>
                 {i + 1}. {e.username}
               </span>
-              <span>{e.score.toLocaleString()}</span>
+              <span>{activeBoard.unit === 'days' ? `🔥 ${e.score}` : e.score.toLocaleString()}</span>
             </div>
           ))
         )}

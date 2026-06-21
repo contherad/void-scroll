@@ -796,6 +796,13 @@ body {
   background: rgba(107, 138, 253, 0.18);
   color: #cdd6ff;
 }
+.lbtabs--menu {
+  margin: 0 0 8px;
+}
+.lbtabs--menu .lbtabs__tab {
+  padding: 6px 4px;
+  font-size: 11px;
+}
 .leaderboard {
   width: 100%;
   border: 1px solid #1f1f1f;
