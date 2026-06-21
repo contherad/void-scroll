@@ -10,13 +10,13 @@ import { sfxTick, sfxThunk, buzz } from '../lib/sfx';
 
 const STEPS = 4;
 const CORE_R = 16;
-const TARGET_R = 30; // how close (to the ring centre) counts as "on" it
-const TARGET_DIST = 0.32; // ring distance from centre, as a fraction of the field
-const K = 0.006; // resistance: the further out, the less each swipe moves it
+const TARGET_R = 27; // how close (to the ring centre) counts as "on" it
+const TARGET_DIST = 0.36; // ring distance from centre, as a fraction of the field
+const K = 0.0072; // resistance: the further out, the less each swipe moves it
 const GAIN = 0.95; // swipe px -> core px (before resistance)
-const RETURN = 0.975; // per-frame pull back toward centre (the force you fight)
-const CHARGE_MS = 520; // time held inside the ring to lock it
-const TIME_MS = 22000;
+const RETURN = 0.969; // per-frame pull back toward centre (the force you fight)
+const CHARGE_MS = 560; // time held inside the ring to lock it
+const TIME_MS = 20000;
 
 let seenIntro = false;
 
