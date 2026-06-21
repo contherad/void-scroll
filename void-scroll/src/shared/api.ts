@@ -12,11 +12,16 @@ export type InitResponse = {
 export type LeaderboardEntry = { username: string; score: number };
 export type LeaderboardResponse = { entries: LeaderboardEntry[] };
 export type BestResponse = { best: number };
+
+// The player ranked one spot above you — the next person to beat. null if you're #1.
+export type ChaseTarget = { username: string; score: number } | null;
+
 export type ScoreResponse = {
   best: number;
   rank: number | null;
   lifetime: number;
   newAchievements: string[]; // badges unlocked by THIS run
+  chase: ChaseTarget;
 };
 
 // Daily Descent: one shared seeded run per day, with its own board + streaks.
@@ -34,6 +39,7 @@ export type DailyScoreResponse = {
   streak: number;
   lifetime: number;
   newAchievements: string[];
+  chase: ChaseTarget;
 };
 
 // Campaign progress: highest unlocked level (1..6, where 6 = Endless).

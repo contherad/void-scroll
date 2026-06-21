@@ -2,7 +2,7 @@
 // three browsable boards (All-time depth / Today / Longest streak) behind tabs.
 
 import { useState } from 'react';
-import { isCurrentUser, type ScoreEntry } from '../lib/api';
+import { isCurrentUser, type ScoreEntry, type ChaseTarget } from '../lib/api';
 import { achievementById, type AchievementDef } from '../../shared/achievements';
 
 export interface LbBoard {
@@ -27,6 +27,7 @@ interface Props {
   onShare?: (() => void) | undefined;
   shareState?: 'idle' | 'sharing' | 'done' | 'failed';
   newAchievements?: string[];
+  chase?: ChaseTarget;
 }
 
 const SHARE_LABEL: Record<NonNullable<Props['shareState']>, string> = {
@@ -55,9 +56,11 @@ export function Leaderboard({
   onShare,
   shareState = 'idle',
   newAchievements = [],
+  chase = null,
 }: Props) {
   const [tab, setTab] = useState(defaultTab);
   const active = boards.find((b) => b.id === tab) ?? boards[0];
+  const chaseGap = chase ? Math.max(0, chase.score - finalScore) : 0;
   const unlocked = newAchievements
     .map(achievementById)
     .filter((a): a is AchievementDef => a != null);
@@ -72,6 +75,22 @@ export function Leaderboard({
             You ranked <strong>#{rank}</strong> in {rankNoun}
           </div>
         )}
+        {chase ? (
+          <div className="chase">
+            {chaseGap > 0 ? (
+              <>
+                <span className="chase__gap">↑ {chaseGap.toLocaleString()}</span> to pass{' '}
+                <strong>{chase.username}</strong>
+              </>
+            ) : (
+              <>
+                neck-and-neck with <strong>{chase.username}</strong> — pull ahead!
+              </>
+            )}
+          </div>
+        ) : rank === 1 ? (
+          <div className="chase chase--top">👑 You’re #1 — defend your throne</div>
+        ) : null}
         {streak !== null && streak > 0 && (
           <div className="overlay__streak">🔥 {streak}-day streak</div>
         )}

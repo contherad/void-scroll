@@ -40,6 +40,7 @@ import {
   hasCurrentUser,
   getMenuStats,
   type ScoreEntry,
+  type ChaseTarget,
 } from './lib/api';
 import { ACHIEVEMENTS } from '../shared/achievements';
 
@@ -832,6 +833,7 @@ function LeaderboardScreen({
   const [rank, setRank] = useState<number | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
   const [newAch, setNewAch] = useState<string[]>([]);
+  const [chase, setChase] = useState<ChaseTarget>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -845,12 +847,14 @@ function LeaderboardScreen({
             setRank(r.rank);
             setStreak(r.streak);
             setNewAch(r.newAchievements);
+            setChase(r.chase);
           }
         } else {
           const r = await submitScore(finalScore, level);
           if (alive) {
             setRank(r.rank);
             setNewAch(r.newAchievements);
+            setChase(r.chase);
           }
         }
         const [all, daily, streaks] = await Promise.all([
@@ -904,6 +908,7 @@ function LeaderboardScreen({
       onShare={finalScore > 0 && hasCurrentUser() ? handleShare : undefined}
       shareState={shareState}
       newAchievements={newAch}
+      chase={chase}
     />
   );
 }

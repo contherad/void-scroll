@@ -9,6 +9,7 @@ import type {
   ProgressResponse,
   ScoreResponse,
   ShareResponse,
+  ChaseTarget,
 } from '../../shared/api';
 import { unlockedIds, type AchStats } from '../../shared/achievements';
 
@@ -37,6 +38,16 @@ async function recordRun(username: string, score: number): Promise<{ best: numbe
   if (score > prev) await redis.zAdd(LB, { member: username, score });
   const lifetime = score > 0 ? await redis.incrBy(`lifetime:${username}`, score) : await lifetimeFor(username);
   return { best: Math.round(Math.max(prev, score)), lifetime };
+}
+
+// The member ranked one spot ABOVE you on a board — your next target to pass.
+// `rank` is 1-based, highest-first. Returns null if you're #1 or unranked.
+async function chaseAbove(board: string, rank: number | null): Promise<ChaseTarget> {
+  if (rank == null || rank <= 1) return null;
+  const idx = rank - 2; // 0-based index (reverse order) of the member one rank up
+  const rows = await redis.zRange(board, idx, idx, { reverse: true, by: 'rank' });
+  const r = rows[0];
+  return r ? { username: r.member, score: Math.round(r.score) } : null;
 }
 
 // Recompute unlocked badges from current stats, persist them, and report which are
@@ -114,8 +125,9 @@ api.post('/score', async (c) => {
   const card = await redis.zCard(LB);
   const rankAsc = await redis.zRank(LB, username);
   const rank = rankAsc == null ? null : card - rankAsc;
+  const chase = await chaseAbove(LB, rank);
 
-  return c.json<ScoreResponse>({ best, rank, lifetime, newAchievements: newly });
+  return c.json<ScoreResponse>({ best, rank, lifetime, newAchievements: newly, chase });
 });
 
 // ------------------------------------------------------------------------ Share
@@ -273,6 +285,7 @@ api.post('/daily-score', async (c) => {
   // A daily run also counts toward your global best + lifetime total.
   const { best: globalBest, lifetime } = await recordRun(username, score);
   const { newly } = await syncAchievements(username, { best: globalBest, lifetime, streak });
+  const chase = await chaseAbove(board, rank);
 
-  return c.json<DailyScoreResponse>({ best, rank, streak, lifetime, newAchievements: newly });
+  return c.json<DailyScoreResponse>({ best, rank, streak, lifetime, newAchievements: newly, chase });
 });

@@ -766,6 +766,19 @@ body {
 .overlay__rank strong {
   color: var(--accent);
 }
+/* Rival chase — the next player to beat, the "one more run" hook. */
+.chase {
+  font-size: 13px;
+  color: #ffd98a;
+  margin-top: 3px;
+}
+.chase__gap {
+  font-family: var(--mono);
+  font-weight: 700;
+}
+.chase strong {
+  color: #fff;
+}
 
 /* ---------------------------------------------------------- Leaderboard */
 /* Tabs to switch between the three boards. */

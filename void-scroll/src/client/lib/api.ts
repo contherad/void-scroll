@@ -3,6 +3,7 @@
 
 import type {
   BestResponse,
+  ChaseTarget,
   DailyResponse,
   DailyScoreResponse,
   InitResponse,
@@ -12,7 +13,7 @@ import type {
   ShareResponse,
 } from '../../shared/api';
 
-export type { DailyResponse } from '../../shared/api';
+export type { DailyResponse, ChaseTarget } from '../../shared/api';
 
 export interface ScoreEntry {
   username: string;
@@ -63,7 +64,13 @@ export async function getStreakBoard(limit = 10): Promise<ScoreEntry[]> {
 export async function submitScore(
   score: number,
   level: number,
-): Promise<{ best: number; rank: number | null; lifetime: number; newAchievements: string[] }> {
+): Promise<{
+  best: number;
+  rank: number | null;
+  lifetime: number;
+  newAchievements: string[];
+  chase: ChaseTarget;
+}> {
   const r = await fetch('/api/score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -127,6 +134,7 @@ export async function submitDailyScore(
   streak: number;
   lifetime: number;
   newAchievements: string[];
+  chase: ChaseTarget;
 }> {
   const r = await fetch('/api/daily-score', {
     method: 'POST',
