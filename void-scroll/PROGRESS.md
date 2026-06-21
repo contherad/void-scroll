@@ -209,6 +209,14 @@ a gold "✦ NEW PERSONAL BEST" pops with a screen glow + swell + haptic. Fires o
 run, gated to real records (prevBest > 0, so new players get milestones instead) and to
 endless/daily. (`App` Game: prevBestRef/pbDoneRef/pb state, `styles.css` .pb)
 
+## Round 17 (autonomous /loop — retention research → improvement)
+Research: near-miss + a NAMED rival are top "one-more-run" drivers; our results screen
+showed rank as a static fact with no chase target. Added a **rival chase**: server
+`chaseAbove(board, rank)` returns the player one rank up (on the run's board — global or
+daily); results show "↑ N to pass @user" (or "neck-and-neck", or "👑 you're #1"). Social
++ on-theme (Reddit = community) + concrete next goal. Verified: gates green + rank→index→
+gap math smoke test. (`shared/api.ts ChaseTarget`, `server/api.ts`, `lib/api.ts`, `Leaderboard`, `App`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the
