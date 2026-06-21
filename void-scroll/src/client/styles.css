@@ -977,6 +977,39 @@ body {
   gap: 12px;
   padding: 38px 24px 22px;
   background: rgba(8, 9, 16, 0.95);
+  animation: miniIn 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@keyframes miniIn {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.mini--intro {
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+.mini__badge {
+  font-size: 52px;
+  color: #8ea2ff;
+  text-shadow: 0 0 30px rgba(107, 138, 253, 0.7);
+  animation: gatePulse 1.2s ease-in-out infinite;
+}
+.mini__intro-text {
+  margin: 0;
+  max-width: 300px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #cfcfcf;
+}
+.mini__intro-text strong {
+  color: #8ea2ff;
 }
 .mini__time {
   width: 100%;

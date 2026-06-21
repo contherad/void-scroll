@@ -38,6 +38,8 @@ interface SwipePhysics {
   boost: (px: number) => void;
   /** Slingshot to a NEW record: max(current, best) + px. Always raises best. */
   slingshot: (px: number) => void;
+  /** Freeze the feed in place (no fall) until the next grab — e.g. while a mini-game is open. */
+  hold: () => void;
   reset: () => void;
 }
 
@@ -51,6 +53,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
   const rafRef = useRef<number | null>(null); // fall-back animation
   const glideRef = useRef<number | null>(null); // smooth boost/slingshot animation
   const glidingRef = useRef(false); // true while a glide owns the feed
+  const holdRef = useRef(false); // freeze the feed (no fall) until the next grab — e.g. mini-game
   const pointersRef = useRef<Map<number, PointerState>>(new Map()); // all fingers down
   const activeRef = useRef<number | null>(null); // the ONE touch that drives the feed
 
@@ -96,6 +99,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     (e: React.PointerEvent) => {
       cancelReturn(); // a new finger before it lands holds the current distance
       cancelGlide(); // grabbing the surface interrupts a glide and takes control
+      holdRef.current = false; // grabbing ends any post-mini-game hold
       pointersRef.current.set(e.pointerId, { lastY: e.clientY });
       // Only the FIRST finger down drives. A second finger is held (keeps it
       // aloft) but cannot swipe until the first is lifted — no plant-and-pump.
@@ -195,7 +199,9 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
           paint();
           glideRef.current = null;
           glidingRef.current = false;
-          if (pointersRef.current.size === 0) startReturn(); // nothing holding it → fall back
+          // Nothing holding it → fall back, UNLESS we're holding (post-mini-game):
+          // the feed parks at the reward height until the player grabs to resume.
+          if (!holdRef.current && pointersRef.current.size === 0) startReturn();
         }
       };
       glideRef.current = requestAnimationFrame(step);
@@ -210,6 +216,17 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     [glide],
   );
 
+  // Freeze the feed in place (no fall) until the next grab — used while the
+  // mini-game is open so it doesn't cost you your height. Clears lingering fingers.
+  const hold = useCallback(() => {
+    cancelReturn();
+    cancelGlide();
+    pointersRef.current.clear();
+    activeRef.current = null;
+    holdRef.current = true;
+    setIsDragging(false);
+  }, [cancelReturn, cancelGlide]);
+
   const reset = useCallback(() => {
     cancelReturn();
     cancelGlide();
@@ -217,6 +234,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     bestRef.current = 0;
     pointersRef.current.clear();
     activeRef.current = null;
+    holdRef.current = false;
     setScore(0);
     setBest(0);
     setVisualY(0);
@@ -244,6 +262,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     },
     boost,
     slingshot,
+    hold,
     reset,
   };
 }
