@@ -16,6 +16,7 @@ export const api = new Hono();
 
 // Global leaderboard sorted set (scoped per app installation / subreddit).
 const LB = 'leaderboard:global';
+const STREAK_LB = 'leaderboard:streak'; // each member's longest streak ever
 
 async function bestFor(username: string | null): Promise<number> {
   if (!username) return 0;

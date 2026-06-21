@@ -180,6 +180,14 @@ banner. Gives non-leaders their own ladder + completionist pull + a "next badge"
 Verified: gates green + unlock-logic smoke test (thresholds, cumulative tiers, newly =
 now−prev). (`shared/achievements.ts`, `server/api.ts`, `lib/api.ts`, `App`, `Leaderboard`)
 
+## Round 13 (user feedback)
+- ✅ **No more losing progress exiting the mini-game**: the post-mini-game park is now
+  robust — it survives taps/releases and only releases on a real **upward swipe** (>4px).
+  A stray touch can't drop your reward to 0 anymore. (`useSwipePhysics`: hold survives
+  pointer-down, endPointer skips the fall while held, resume gated on upward delta.)
+  Added a pulsing "⬆ swipe up to resume — your depth is safe" hint while parked
+  (`held` state exposed from the hook). (`useSwipePhysics`, `App`, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

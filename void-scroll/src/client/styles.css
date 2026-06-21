@@ -893,6 +893,17 @@ body {
   72% { opacity: 1; }
   100% { opacity: 0; }
 }
+/* Persistent (no fade-out) — shown while the feed is parked after a mini-game. */
+.coach--resume {
+  top: 60%;
+  color: #ffd98a;
+  font-weight: 700;
+  animation: coachResume 1.3s ease-in-out infinite;
+}
+@keyframes coachResume {
+  0%, 100% { opacity: 0.65; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
 
 /* Collected phrase letters give a quick pop. */
 .hud__phrase-ch.is-lit {

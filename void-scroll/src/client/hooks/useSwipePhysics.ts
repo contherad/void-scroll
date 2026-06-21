@@ -28,6 +28,8 @@ interface SwipePhysics {
   /** Visual translateY for the feed, in px (negative = up). */
   visualY: number;
   isDragging: boolean;
+  /** Parked after a mini-game, waiting for an upward swipe to resume (no fall yet). */
+  held: boolean;
   handlers: {
     onPointerDown: (e: React.PointerEvent) => void;
     onPointerMove: (e: React.PointerEvent) => void;
@@ -44,6 +46,7 @@ interface SwipePhysics {
 }
 
 const RETURN_MS = 450; // how long the feed takes to fall back to the middle
+const RESUME_SWIPE = 4; // px of upward swipe needed to un-park after a mini-game
 
 export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
   const distanceRef = useRef(0); // current distance from the middle (px, >=0) = score
@@ -61,6 +64,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
   const [best, setBest] = useState(0);
   const [visualY, setVisualY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [held, setHeld] = useState(false);
 
   useEffect(() => {
     kRef.current = k;
@@ -99,7 +103,9 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     (e: React.PointerEvent) => {
       cancelReturn(); // a new finger before it lands holds the current distance
       cancelGlide(); // grabbing the surface interrupts a glide and takes control
-      holdRef.current = false; // grabbing ends any post-mini-game hold
+      // NOTE: do NOT clear holdRef here — a post-mini-game park survives a tap and
+      // only releases on a real upward swipe (see onPointerMove), so a stray touch
+      // can't drop your reward to 0.
       pointersRef.current.set(e.pointerId, { lastY: e.clientY });
       // Only the FIRST finger down drives. A second finger is held (keeps it
       // aloft) but cannot swipe until the first is lifted — no plant-and-pump.
@@ -118,6 +124,12 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
       p.lastY = e.clientY; // keep every finger's position current (no jump when promoted)
       if (e.pointerId !== activeRef.current) return; // only the active touch climbs
       if (glidingRef.current) return; // a glide owns the feed briefly
+      if (holdRef.current) {
+        // Parked after a mini-game: ignore taps/jitter; resume only on an upward swipe.
+        if (deltaUp <= RESUME_SWIPE) return;
+        holdRef.current = false; // engaged — back to normal physics from the reward height
+        setHeld(false);
+      }
       const gain = swipeGain(distanceRef.current, deltaUp, kRef.current) * gainMultRef.current;
       distanceRef.current = Math.max(0, distanceRef.current + gain);
       paint();
@@ -166,7 +178,9 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
       }
       if (pointersRef.current.size === 0) {
         setIsDragging(false);
-        startReturn(); // last finger up — fall back to the middle
+        // Still parked after a mini-game (never swiped up to resume)? Stay put —
+        // a tap/release must not drop the reward to 0.
+        if (!holdRef.current) startReturn(); // last finger up — fall back to the middle
       }
     },
     [startReturn],
@@ -224,6 +238,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     pointersRef.current.clear();
     activeRef.current = null;
     holdRef.current = true;
+    setHeld(true);
     setIsDragging(false);
   }, [cancelReturn, cancelGlide]);
 
@@ -239,6 +254,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     setBest(0);
     setVisualY(0);
     setIsDragging(false);
+    setHeld(false);
   }, [cancelReturn, cancelGlide]);
 
   useEffect(
@@ -254,6 +270,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     best,
     visualY,
     isDragging,
+    held,
     handlers: {
       onPointerDown,
       onPointerMove,

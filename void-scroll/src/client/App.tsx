@@ -728,6 +728,9 @@ function Game({
           <span className="gate__sub">tap to enter the gate</span>
         </button>
       )}
+      {physics.held && !inMini && (
+        <div className="coach coach--resume">⬆ swipe up to resume — your depth is safe</div>
+      )}
       <div className="toasts">
         {events.event && <EventBanner event={events.event} />}
         {milestone && <MilestoneToast message={milestone} />}
