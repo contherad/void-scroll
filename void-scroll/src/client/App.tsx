@@ -2,7 +2,7 @@
 // between screens. Two modes: the level campaign (all-time board) and the Daily
 // Descent (one shared seeded run per day, with its own board + streaks).
 
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { SwipeCard } from './components/SwipeCard';
 import { HUD } from './components/HUD';
 import { LevelTransition } from './components/LevelTransition';
@@ -88,36 +88,42 @@ function reducer(state: GameState, action: Action): GameState {
 // Daily feed order is the same for everyone today (seed shared with the server).
 const DAILY_POOL = seededShuffle(FEED_CARDS, dateSeed());
 
-// Ambient drifting particles behind everything — gives the void some depth.
+// Ambient parallax motes that rise through the void — bigger ones drift faster
+// and farther (foreground), smaller ones slow and faint (depth). They fade in and
+// out so the loop never jumps.
 function Particles() {
   const [dots] = useState(() =>
-    Array.from({ length: 34 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      size: 1 + Math.random() * 2.4,
-      dur: 9 + Math.random() * 16,
-      delay: -Math.random() * 24,
-      op: 0.1 + Math.random() * 0.32,
-    })),
+    Array.from({ length: 42 }, (_, i) => {
+      const size = 1.3 + Math.random() * 2.6; // 1.3–3.9 px
+      return {
+        id: i,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        size,
+        sx: (Math.random() - 0.5) * 26, // ±13px horizontal sway
+        sy: -(36 + size * 13 + Math.random() * 26), // rise ~50–100px (bigger = more)
+        dur: 7 + (4 - size) * 2.6 + Math.random() * 6, // bigger = faster (parallax)
+        delay: -Math.random() * 18,
+        op: 0.14 + Math.random() * 0.34,
+      };
+    }),
   );
   return (
     <div className="particles" aria-hidden="true">
-      {dots.map((d) => (
-        <span
-          key={d.id}
-          className="particle"
-          style={{
-            left: `${d.left}%`,
-            top: `${d.top}%`,
-            width: `${d.size}px`,
-            height: `${d.size}px`,
-            opacity: d.op,
-            animationDuration: `${d.dur}s`,
-            animationDelay: `${d.delay}s`,
-          }}
-        />
-      ))}
+      {dots.map((d) => {
+        const style: Record<string, string | number> = {
+          left: `${d.left}%`,
+          top: `${d.top}%`,
+          width: `${d.size}px`,
+          height: `${d.size}px`,
+          animationDuration: `${d.dur}s`,
+          animationDelay: `${d.delay}s`,
+          '--sx': `${d.sx}px`,
+          '--sy': `${d.sy}px`,
+          '--op': d.op,
+        };
+        return <span key={d.id} className="particle" style={style as CSSProperties} />;
+      })}
     </div>
   );
 }

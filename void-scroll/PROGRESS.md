@@ -112,6 +112,19 @@ type-check + lint + build green (`npm run type-check && npm run lint && npm run 
   reappears on a later pass (collected ones show dim). Gaps widened 13–20 tiles
   (~2,000–2,900px, was 6–11). (`phrase.ts`, `SwipeCard`, `App`)
 
+## Round 7 (user feedback)
+- ✅ **Multiple words in endless**: completing a word launches you and the NEXT word
+  appears ahead (`wordAt` sequence; new `letterSlots` laid out past the slingshot
+  landing). HUD shows the live word always + a ✦N completed-words count. (`phrase.ts`,
+  `App` Game, `HUD`)
+- ✅ **"Best isn't updating" fixed**: Daily runs only fed the daily board — now a
+  daily run also raises your **global best** + leaderboard (server `recordRun`).
+- ✅ **Lifetime total**: server `lifetime:{user}` adds every run's score (cumulative);
+  `/init` returns it; shown as a 3rd idle stat chip. (`server/api.ts`, `lib/api.ts`, `App`)
+- ✅ **Particle parallax**: ambient motes now actually move — rise + sway with
+  per-mote speed/size (parallax) and fade in/out; no longer killed by reduced-motion
+  (just gently slowed). (`App` Particles, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

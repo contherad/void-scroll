@@ -67,14 +67,25 @@ body {
   position: absolute;
   border-radius: 50%;
   background: #aeb8e6;
+  opacity: 0;
+  will-change: transform, opacity;
   animation-name: particleDrift;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
-  animation-direction: alternate;
 }
 @keyframes particleDrift {
-  from { transform: translateY(8px); }
-  to { transform: translateY(-24px); }
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: var(--op, 0.3);
+  }
+  100% {
+    transform: translate3d(var(--sx, 0), var(--sy, -60px), 0);
+    opacity: 0;
+  }
 }
 
 /* ----------------------------------------------------------------- Buttons */
@@ -890,9 +901,13 @@ body {
   .coach,
   .milestone__text,
   .launch,
-  .orb,
-  .particle {
+  .orb {
     animation: none !important;
+  }
+  /* Particles stay — a slow ambient drift is gentle enough, and the depth it adds
+     is the whole point. Just ease it down a touch. */
+  .particle {
+    animation-duration: 16s !important;
   }
 }
 
