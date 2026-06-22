@@ -23,11 +23,11 @@ export interface CardContent {
 export const ENDLESS_LEVEL = 6;
 
 export const LEVELS: LevelConfig[] = [
-  { level: 1, k: 0.0012, items: 5, label: 'Easy', card: { glyph: '🌑', word: 'drift' } },
-  { level: 2, k: 0.0012, items: 8, label: 'Medium', card: { glyph: '🌫️', word: 'deeper' } },
-  { level: 3, k: 0.0012, items: 11, label: 'Hard', card: { glyph: '🪐', word: 'further' } },
-  { level: 4, k: 0.0012, items: 15, label: 'Very Hard', card: { glyph: '🕳️', word: 'down' } },
-  { level: 5, k: 0.0012, items: 20, label: 'Brutal', card: { glyph: '✦', word: 'below' } },
+  { level: 1, k: 0.0012, items: 10, label: 'Easy', card: { glyph: '🌑', word: 'drift' } },
+  { level: 2, k: 0.0012, items: 16, label: 'Medium', card: { glyph: '🌫️', word: 'deeper' } },
+  { level: 3, k: 0.0012, items: 22, label: 'Hard', card: { glyph: '🪐', word: 'further' } },
+  { level: 4, k: 0.0012, items: 30, label: 'Very Hard', card: { glyph: '🕳️', word: 'down' } },
+  { level: 5, k: 0.0012, items: 40, label: 'Brutal', card: { glyph: '✦', word: 'below' } },
   { level: 6, k: 0.0012, items: Infinity, label: 'Endless', card: { glyph: '∞', word: 'the void' } },
 ];
 

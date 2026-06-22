@@ -256,6 +256,12 @@ both overlay users (Leaderboard tall / LevelTransition short) handled; gates gre
   unlock and a deliberate upward swipe resume. Can't lose your depth to residual taps.
   (`useSwipePhysics` resumeLocked/allowResume, `App` Game countdown, `styles.css`)
 
+## Round 22 (user feedback — difficulty tuning)
+- ✅ Mini-game harder: ring **charge time 560ms → 820ms** (hold longer to lock); timer
+  20s→21s so the 4 longer holds stay fair. (`MiniGame`)
+- ✅ Campaign levels **doubled** (items 5/8/11/15/20 → 10/16/22/30/40). Clear distance
+  ~2×; with the rising resistance curve the late stretch is >2× effort. (`levels.ts`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

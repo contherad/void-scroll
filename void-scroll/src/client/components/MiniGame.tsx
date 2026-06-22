@@ -15,8 +15,8 @@ const TARGET_DIST = 0.36; // ring distance from centre, as a fraction of the fie
 const K = 0.0072; // resistance: the further out, the less each swipe moves it
 const GAIN = 0.95; // swipe px -> core px (before resistance)
 const RETURN = 0.969; // per-frame pull back toward centre (the force you fight)
-const CHARGE_MS = 560; // time held inside the ring to lock it
-const TIME_MS = 20000;
+const CHARGE_MS = 820; // time held steady inside the ring to lock it (longer = harder)
+const TIME_MS = 21000;
 
 let seenIntro = false;
 
