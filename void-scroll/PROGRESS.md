@@ -235,6 +235,16 @@ to replay. Daily uses the global best (`getUserBest`), not the per-day board, so
 gap is correct. Verified: gates green + tier/gap smoke test. (`shared/achievements.ts`,
 `Leaderboard`, `App` IdleScreen + LeaderboardScreen, `styles.css`)
 
+## Round 20 (autonomous /loop — cohesion/polish pass)
+Reviewed instead of adding: the results overlay had grown tall (score + rank + chase +
+next-badge + streak + unlock banner + tabs + 10-row board + 2 buttons) but `.overlay`
+used flex centering with NO scroll — on a populated leaderboard / short screen the panel
+overflows and **clips Play Again, breaking the replay loop**. Fixed with the canonical
+`margin:auto` + `overflow-y:auto` pattern (centers when it fits, scrolls both ends when
+taller); also trimmed the results board 10→7 to keep the common case on-screen. Verified:
+both overlay users (Leaderboard tall / LevelTransition short) handled; gates green.
+(`styles.css` .overlay/.overlay__panel, `App` LeaderboardScreen)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

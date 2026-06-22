@@ -909,15 +909,15 @@ function LeaderboardScreen({
         // getUserBest is the GLOBAL all-time best (both modes feed it) — the basis
         // for the depth-badge nudge, unlike the daily board's per-day best.
         const [all, daily, streaks, globalBest] = await Promise.all([
-          getLeaderboard(10),
+          getLeaderboard(7),
           getDaily(),
-          getStreakBoard(10),
+          getStreakBoard(7),
           getUserBest(),
         ]);
         if (alive) setBest(globalBest);
         if (!alive) return;
         setAllBoard(all);
-        setTodayBoard(daily.entries);
+        setTodayBoard(daily.entries.slice(0, 7));
         setStreakBoard(streaks);
         if (mode !== 'daily') setStreak(daily.streak);
       } catch {

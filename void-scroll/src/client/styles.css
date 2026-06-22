@@ -709,8 +709,10 @@ body {
   inset: 0;
   z-index: 5;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  /* No align/justify-center here: with a tall panel that clips the top and makes
+     the bottom (Play Again) unreachable. `margin:auto` on the panel centers it when
+     it fits and lets it scroll to BOTH ends when it doesn't. */
+  overflow-y: auto;
   padding: 28px;
   background: rgba(8, 8, 8, 0.82);
   backdrop-filter: blur(3px);
@@ -723,6 +725,7 @@ body {
 .overlay__panel {
   width: 100%;
   max-width: 300px;
+  margin: auto; /* centers in the flex overlay when it fits; scrolls when taller */
   text-align: center;
   display: flex;
   flex-direction: column;
