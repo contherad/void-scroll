@@ -25,7 +25,18 @@ import {
 } from './lib/levels';
 import { SLOT, dateSeed, seededShuffle } from './lib/feed';
 import { phraseFor, wordAt, letterSlots } from './lib/phrase';
-import { sfxTick, sfxThunk, sfxSting, sfxSwell, buzz, setMuted, isMuted } from './lib/sfx';
+import {
+  sfxTick,
+  sfxThunk,
+  sfxSting,
+  sfxSwell,
+  buzz,
+  setMuted,
+  isMuted,
+  startAmbient,
+  stopAmbient,
+  unlockAudio,
+} from './lib/sfx';
 import {
   init,
   getLeaderboard,
@@ -156,6 +167,13 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  // Ambient bed: starts silent (suspended) and fades in on the first gesture that
+  // unlocks audio. Off while muted. The mute toggle also stops/starts it.
+  useEffect(() => {
+    if (!isMuted()) startAmbient();
+    return () => stopAmbient();
+  }, []);
+
   const toggleMute = useCallback(() => {
     setMutedState((m) => {
       const next = !m;
@@ -187,8 +205,16 @@ export default function App() {
       <div className="screen">
         {state.phase === 'idle' && (
           <IdleScreen
-            onStart={() => dispatch({ type: 'SHOW_MAP' })}
-            onStartDaily={() => dispatch({ type: 'START_DAILY' })}
+            onStart={() => {
+              unlockAudio();
+              startAmbient();
+              dispatch({ type: 'SHOW_MAP' });
+            }}
+            onStartDaily={() => {
+              unlockAudio();
+              startAmbient();
+              dispatch({ type: 'START_DAILY' });
+            }}
           />
         )}
 
@@ -543,6 +569,8 @@ function Game({
   const [gateFlash, setGateFlash] = useState(false); // brief flash when the pattern resets
   const gateFlashTimer = useRef<number | null>(null);
   const [inMini, setInMini] = useState(false);
+  const [resumeCount, setResumeCount] = useState<number | null>(null); // post-mini-game countdown
+  const resumeTimer = useRef<number | null>(null);
 
   const handleCollect = useCallback((order: number) => {
     if (collectedRef.current.has(order)) return; // already collected — ignore
@@ -596,9 +624,29 @@ function Game({
     setInMini(true);
   };
 
+  // A locked 3·2·1 countdown after the mini-game: the feed ignores ALL input (so the
+  // frantic leftover swipes from the task can't fling it), then unlocks and waits for a
+  // deliberate upward swipe to resume.
+  const startResumeCountdown = () => {
+    let n = 3;
+    setResumeCount(n);
+    const tick = () => {
+      n -= 1;
+      if (n <= 0) {
+        setResumeCount(null);
+        physics.allowResume();
+        resumeTimer.current = null;
+      } else {
+        setResumeCount(n);
+        resumeTimer.current = window.setTimeout(tick, 800);
+      }
+    };
+    resumeTimer.current = window.setTimeout(tick, 800);
+  };
+
   // Leaving the checkpoint mini-game: a win slingshots you deep (and the feed stays
-  // parked at the reward until you grab it — no reset to 0). Either way the gate is
-  // consumed and a fresh pattern rolls for the next one.
+  // parked at the reward — no reset to 0). Either way the gate is consumed, a fresh
+  // pattern rolls, and the locked countdown guards the resume.
   const endMini = (success: boolean) => {
     setInMini(false);
     setGateReady(false);
@@ -613,6 +661,7 @@ function Game({
       if (phraseTimer.current) clearTimeout(phraseTimer.current);
       phraseTimer.current = window.setTimeout(() => setPhraseToast(null), 1500);
     }
+    startResumeCountdown();
   };
 
   // Endless milestones — cheer the first time `best` crosses each threshold.
@@ -703,6 +752,7 @@ function Game({
     if (orbTimer.current) clearTimeout(orbTimer.current);
     if (gateFlashTimer.current) clearTimeout(gateFlashTimer.current);
     if (pbTimer.current) clearTimeout(pbTimer.current);
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
   }, []);
 
   const handleEnd = useCallback(() => onEndRun(physics.best), [onEndRun, physics.best]);
@@ -834,7 +884,15 @@ function Game({
           <span className="gate__sub">tap to enter the gate</span>
         </button>
       )}
-      {physics.held && !inMini && (
+      {resumeCount != null && (
+        <div className="resume-count" aria-hidden="true">
+          <div className="resume-count__num" key={resumeCount}>
+            {resumeCount}
+          </div>
+          <div className="resume-count__label">resuming — depth saved</div>
+        </div>
+      )}
+      {physics.held && !inMini && resumeCount == null && (
         <div className="coach coach--resume">⬆ swipe up to resume — your depth is safe</div>
       )}
       {pb && (

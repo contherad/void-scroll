@@ -245,6 +245,17 @@ taller); also trimmed the results board 10→7 to keep the common case on-screen
 both overlay users (Leaderboard tall / LevelTransition short) handled; gates green.
 (`styles.css` .overlay/.overlay__panel, `App` LeaderboardScreen)
 
+## Round 21 (user feedback)
+- ✅ **Ambient music**: procedural evolving open-fifth drone (A2·E3·A3·E4 sine voices,
+  each breathing on its own slow LFO, under a drifting low-pass) — calm, spacious, no
+  assets. Fades in on the first gesture, off while muted (wired into `setMuted`).
+  (`sfx.ts startAmbient/stopAmbient`, `App` mount + Play/Daily unlock)
+- ✅ **Mini-game exit countdown (real fix)**: the swipe-task's leftover frantic swipes
+  were still flinging the feed. Now `hold()` LOCKS all input; a big **3·2·1 countdown**
+  runs after the mini-game ignoring every swipe; only when it ends does `allowResume()`
+  unlock and a deliberate upward swipe resume. Can't lose your depth to residual taps.
+  (`useSwipePhysics` resumeLocked/allowResume, `App` Game countdown, `styles.css`)
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

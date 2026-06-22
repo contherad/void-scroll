@@ -1546,3 +1546,37 @@ body {
   margin-top: 10px;
   text-align: center;
 }
+
+/* -------------------------------------------- Post-mini-game resume countdown */
+.resume-count {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  background: rgba(8, 9, 16, 0.5);
+}
+.resume-count__num {
+  font-family: var(--mono);
+  font-size: 96px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 44px rgba(107, 138, 253, 0.75);
+  animation: resumePop 0.8s ease;
+}
+.resume-count__label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #ffd98a;
+}
+@keyframes resumePop {
+  0% { opacity: 0; transform: scale(1.6); }
+  28% { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}

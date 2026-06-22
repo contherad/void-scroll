@@ -42,6 +42,8 @@ interface SwipePhysics {
   slingshot: (px: number) => void;
   /** Freeze the feed in place (no fall) until the next grab — e.g. while a mini-game is open. */
   hold: () => void;
+  /** After hold(), unlock input so a deliberate upward swipe can resume (post-countdown). */
+  allowResume: () => void;
   reset: () => void;
 }
 
@@ -57,6 +59,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
   const glideRef = useRef<number | null>(null); // smooth boost/slingshot animation
   const glidingRef = useRef(false); // true while a glide owns the feed
   const holdRef = useRef(false); // freeze the feed (no fall) until the next grab — e.g. mini-game
+  const resumeLockedRef = useRef(false); // while held, IGNORE all input (post-mini-game countdown)
   const pointersRef = useRef<Map<number, PointerState>>(new Map()); // all fingers down
   const activeRef = useRef<number | null>(null); // the ONE touch that drives the feed
 
@@ -125,7 +128,10 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
       if (e.pointerId !== activeRef.current) return; // only the active touch climbs
       if (glidingRef.current) return; // a glide owns the feed briefly
       if (holdRef.current) {
-        // Parked after a mini-game: ignore taps/jitter; resume only on an upward swipe.
+        // Locked during the post-mini-game countdown: ignore EVERYTHING so the frantic
+        // leftover swipes from the task can't fling you off.
+        if (resumeLockedRef.current) return;
+        // Then: parked — ignore taps/jitter; resume only on a deliberate upward swipe.
         if (deltaUp <= RESUME_SWIPE) return;
         holdRef.current = false; // engaged — back to normal physics from the reward height
         setHeld(false);
@@ -238,9 +244,16 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     pointersRef.current.clear();
     activeRef.current = null;
     holdRef.current = true;
+    resumeLockedRef.current = true; // input stays locked until allowResume() (after the countdown)
     setHeld(true);
     setIsDragging(false);
   }, [cancelReturn, cancelGlide]);
+
+  // End the post-mini-game lock: the feed stays parked, but a deliberate upward swipe
+  // now resumes it (called when the countdown finishes).
+  const allowResume = useCallback(() => {
+    resumeLockedRef.current = false;
+  }, []);
 
   const reset = useCallback(() => {
     cancelReturn();
@@ -250,6 +263,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     pointersRef.current.clear();
     activeRef.current = null;
     holdRef.current = false;
+    resumeLockedRef.current = false;
     setScore(0);
     setBest(0);
     setVisualY(0);
@@ -280,6 +294,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
     boost,
     slingshot,
     hold,
+    allowResume,
     reset,
   };
 }
