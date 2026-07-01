@@ -1580,3 +1580,330 @@ body {
   28% { opacity: 1; transform: scale(1); }
   100% { opacity: 1; transform: scale(1); }
 }
+
+/* -------------------------------------- Community Daily word (attribution + submit) */
+.idle__dailyword {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.idle__dailyword strong {
+  font-family: var(--mono);
+  color: #ffd98a;
+  letter-spacing: 1px;
+}
+.idle__dailyword-by {
+  color: var(--void);
+}
+.wordsub {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 2px;
+}
+.wordsub__label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.wordsub__row {
+  display: flex;
+  gap: 6px;
+}
+.wordsub__input {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  background: #161616;
+  border: 1px solid #2c2c2c;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 2px;
+  text-align: center;
+}
+.wordsub__input:focus {
+  outline: none;
+  border-color: var(--void);
+}
+.wordsub__btn {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+.wordsub__msg {
+  font-size: 11px;
+  color: #e89a9a;
+  margin-top: 5px;
+}
+.wordsub--done {
+  width: 100%;
+  max-width: 300px;
+  font-size: 12px;
+  color: #8ef0b4;
+}
+
+/* ------------------------------------------------------ Challenges (UGC) */
+.feedmark--target {
+  border-color: rgba(255, 120, 120, 0.6);
+}
+.feedmark--target .feedmark__label {
+  color: #ff9a9a;
+}
+.btn--challenge {
+  background: rgba(255, 120, 120, 0.12);
+  border: 1px solid rgba(255, 120, 120, 0.55);
+  color: #ffc4c4;
+  font-size: 14px;
+}
+.btn--challenge:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.challenge-word {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.challenge-word strong {
+  font-family: var(--mono);
+  color: #ffd98a;
+  letter-spacing: 1px;
+}
+.challenge-verdict {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.challenge-verdict.is-win {
+  color: #8ef0b4;
+  text-shadow: 0 0 20px rgba(54, 224, 122, 0.4);
+}
+
+/* ============================================================ Void Clash (PvP) */
+/* Menu entry — a warmer, more aggressive sibling of the daily button. */
+.btn--clash {
+  border-color: rgba(255, 120, 80, 0.55);
+  color: #ffd3c2;
+}
+.btn--clash:hover {
+  border-color: rgba(255, 120, 80, 0.9);
+  background: rgba(255, 120, 80, 0.08);
+}
+
+/* Overlay is click-through; only the interactive children re-enable pointers. */
+.clash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Standing rail — every racer as a dot by relative depth (deepest at bottom). */
+.clash__rail {
+  position: absolute;
+  left: 9px;
+  top: 15%;
+  bottom: 15%;
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.clash__rail-head {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.clash__rail-track {
+  position: relative;
+  flex: 1;
+  width: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.clash__pip {
+  position: absolute;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: hsl(var(--hue, 220) 65% 58%);
+  box-shadow: 0 0 8px hsl(var(--hue, 220) 65% 58% / 0.6);
+  transition: top 0.2s linear;
+}
+.clash__pip--you {
+  width: 13px;
+  height: 13px;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+  z-index: 2;
+}
+.clash__pip--gone {
+  opacity: 0.25;
+}
+.clash__pip--hit {
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+/* On-screen rival avatar — tap to fire. */
+.racer {
+  position: absolute;
+  z-index: 6;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: top 0.2s linear, left 0.3s ease, opacity 0.4s ease;
+}
+.racer__face {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  border-radius: 50%;
+  color: hsl(var(--hue, 220) 80% 82%);
+  background: hsl(var(--hue, 220) 60% 22% / 0.85);
+  border: 1.5px solid hsl(var(--hue, 220) 75% 60%);
+  box-shadow: 0 0 16px hsl(var(--hue, 220) 70% 55% / 0.4);
+}
+.racer__name {
+  font-size: 9px;
+  letter-spacing: 0.3px;
+  color: var(--text-dim);
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.racer__shield {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid rgba(140, 200, 255, 0.9);
+  box-shadow: 0 0 14px rgba(120, 190, 255, 0.6);
+  pointer-events: none;
+}
+.racer__pop {
+  position: absolute;
+  top: -14px;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(255, 69, 0, 0.6);
+  animation: racerPop 0.5s ease forwards;
+}
+.racer__pop--block {
+  color: #9fd0ff;
+  text-shadow: 0 0 10px rgba(120, 190, 255, 0.7);
+}
+@keyframes racerPop {
+  0% { opacity: 0; transform: translateY(6px); }
+  30% { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 0; transform: translateY(-16px); }
+}
+.racer--fired .racer__face {
+  animation: racerFire 0.28s ease;
+}
+@keyframes racerFire {
+  50% { box-shadow: 0 0 26px hsl(var(--hue, 220) 90% 70% / 0.95); transform: scale(1.08); }
+}
+.racer--hit .racer__face {
+  border-color: var(--accent);
+  box-shadow: 0 0 24px rgba(255, 69, 0, 0.75);
+  animation: racerShake 0.4s ease;
+}
+@keyframes racerShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.racer--deflect .racer__shield {
+  animation: racerDeflect 0.4s ease;
+}
+@keyframes racerDeflect {
+  0% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.22); border-color: #fff; }
+  100% { transform: translateX(-50%) scale(1); }
+}
+.racer--gone {
+  opacity: 0.3;
+  filter: grayscale(0.7);
+}
+
+/* Ammo / shield pickups — same drift as the bonus orbs. */
+.pickup {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 20px;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  animation: orbDrift 3.4s ease forwards;
+}
+.pickup--ammo {
+  border-color: rgba(255, 150, 90, 0.7);
+  box-shadow: 0 0 22px rgba(255, 130, 70, 0.4);
+}
+.pickup--shield {
+  border-color: rgba(120, 190, 255, 0.7);
+  box-shadow: 0 0 22px rgba(120, 190, 255, 0.4);
+}
+
+/* Arsenal readout — your ammo + shields. */
+.arsenal {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 6;
+}
+.arsenal__slot {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: #555;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid #2a2a2a;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.arsenal__slot.is-live {
+  color: #fff;
+  border-color: #4a4a4a;
+}
+.arsenal__slot b {
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pickup,
+  .racer--fired .racer__face,
+  .racer--hit .racer__face {
+    animation: none !important;
+  }
+}

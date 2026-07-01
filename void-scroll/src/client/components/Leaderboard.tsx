@@ -26,10 +26,19 @@ interface Props {
   playAgainLabel?: string;
   onShare?: (() => void) | undefined;
   shareState?: 'idle' | 'sharing' | 'done' | 'failed';
+  onChallenge?: (() => void) | undefined;
+  challengeState?: 'idle' | 'posting' | 'done' | 'failed';
   newAchievements?: string[];
   chase?: ChaseTarget;
   best?: number | undefined; // all-time best, for the "next badge" goal-gradient nudge
 }
+
+const CHALLENGE_LABEL: Record<'idle' | 'posting' | 'done' | 'failed', string> = {
+  idle: '🎯 Post as Challenge',
+  posting: 'Posting…',
+  done: '✓ Challenge posted!',
+  failed: '✗ Couldn’t post — retry',
+};
 
 const SHARE_LABEL: Record<NonNullable<Props['shareState']>, string> = {
   idle: '📣 Brag in comments',
@@ -56,6 +65,8 @@ export function Leaderboard({
   playAgainLabel = 'Play again',
   onShare,
   shareState = 'idle',
+  onChallenge,
+  challengeState = 'idle',
   newAchievements = [],
   chase = null,
   best,
@@ -159,6 +170,16 @@ export function Leaderboard({
             disabled={shareState === 'sharing' || shareState === 'done'}
           >
             {SHARE_LABEL[shareState]}
+          </button>
+        )}
+
+        {onChallenge && (
+          <button
+            className="btn btn--challenge"
+            onClick={onChallenge}
+            disabled={challengeState === 'posting' || challengeState === 'done'}
+          >
+            {CHALLENGE_LABEL[challengeState]}
           </button>
         )}
 

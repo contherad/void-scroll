@@ -262,6 +262,64 @@ both overlay users (Leaderboard tall / LevelTransition short) handled; gates gre
 - ✅ Campaign levels **doubled** (items 5/8/11/15/20 → 10/16/22/30/40). Clear distance
   ~2×; with the rising resistance curve the late stretch is >2× effort. (`levels.ts`)
 
+## Round 23 (hackathon plan — UGC: community Daily word) — opens Best Use of User Contributions
+- ✅ Players **submit a word** from the menu (one/day, validated + profanity-guarded via
+  shared `validateWord`); words queue server-side (`word:queue` sorted set).
+- ✅ Each **Daily Descent's first secret word is a community submission**, served in order
+  (cursor%n, cycling so everyone's word eventually headlines), cached per day so it's the
+  same for all. Falls back to a generated word when the queue is empty. (`server /submit-word`
+  + `/daily` `dailyWord()`)
+- ✅ **Attribution** on the menu ("today's word DRIFT · by u/alice") → author status + a
+  reason to return. Word plumbed into the daily run as the phrase you spell. (`App` IdleScreen
+  + `DailyWordSubmit`, Game `dailyWord` prop, `styles.css`)
+- Verified: gates green + validateWord/cycling smoke tests. Built from `HACKATHON_PLAN.md` P1a.
+- NEXT (needs a live test sub): auto-updating leaderboard COMMENT on the post (P0), and
+  player-created Challenge posts (P1b).
+
+## Round 24 (hackathon plan — P0: live leaderboard comment on the post)
+- ✅ App-owned (`runAs: 'APP'`), **stickied** comment on the post showing today's Daily
+  board + community word; **create-or-edit** (stores `lb-comment:{postId}`), refreshed on
+  daily-score submit — instant on a new top-5, else throttled ~3 min. Best-effort (never
+  fails the score; sticky/edit wrapped in catch). (`server/api.ts` buildDailyComment +
+  updateDailyComment, `/daily-score`). Devvit APIs verified present: getCommentById,
+  Comment.edit/distinguish, submitComment runAs.
+- ⏳ NEEDS LIVE VALIDATION in r/void_scroll_dev playtest (can't exercise reddit API
+  headlessly): play a Daily, submit a score → confirm the app's stickied comment appears
+  + updates. Then build P1b (player-created Challenge posts).
+
+## Round 25 (hackathon plan — P1b: player-created Challenge POSTS) — the marquee UGC
+- ✅ **Create**: results screen "🎯 Post as Challenge" → `POST /create-challenge`
+  (`submitCustomPost` + store `challenge:{postId}` = {creator, seed, target, word}; 5-min
+  cooldown). Run's seed threaded via END_RUN so the challenge is a reproducible run.
+- ✅ **Play**: `/init` returns the challenge for a challenge post → App routes to a
+  `ChallengeFlow` (intro "beat N by u/x" → fixed-seed endless run with a 🎯 TARGET chase
+  line + the creator's word → results: beat/short + per-post `challenge-board:{postId}`).
+  `/challenge-score` records to the per-post board AND global best/lifetime/badges.
+- ✅ Generalized Game props: `seedOverride`, `firstWord` (was `dailyWord`), `challengeTarget`
+  (+ marker kind `target`). New `btn--challenge`, challenge intro/verdict UI. Gates green.
+- ⏳ LIVE-VALIDATE in r/void_scroll_dev: finish a run → Post as Challenge → confirm a new
+  post appears in the sub → open it → it should drop into the challenge (beat-the-target),
+  log to its own board. NOTE: challenge post is authored by the app account (title credits
+  u/creator); can switch to runAs:'USER' if you want the post by the player.
+
+## Round 26 (user feedback — submitted word never showed in the daily)
+Two bugs: (1) client read today's word once at page load, so a word submitted after never
+updated the menu OR the run (it used the stale fallback); (2) submissions only ever
+headlined a FUTURE day. Fixes:
+- ✅ Server: `/submit-word` now **claims today's open slot** (first submitter of the day
+  becomes the daily word), returns `today: boolean`. (`server/api.ts`)
+- ✅ Client: daily word lifted to `App` with `refreshDailyWord()`, **re-fetched right after
+  a submit** so attribution + the daily run reflect it immediately; success message says
+  "is today's word" vs "queued"; label "first one each day headlines the Daily".
+  (`App` lift + IdleScreen props + `DailyWordSubmit`). Gates green.
+
+## Round 27 (hackathon — challenge splash/preview)
+- ✅ Challenge posts now render a **challenge-specific in-feed card**: `splash.tsx` fetches
+  `/api/init`; if the post is a challenge it shows "🎯 CHALLENGE · by u/x · Beat N · spell
+  WORD · Take the Challenge" (red CTA) instead of the generic Void Scroll splash. Makes
+  challenges enticing right in the feed (helps the "drives growth via the feed" angle).
+  Gates green.
+
 ## Post-loop tweak (user feedback)
 - ✅ Phrase-complete is now a **deliberate launch**, not an auto-skip: completing
   the word arms a pulsing **"TAP TO LAUNCH ⏫"** prompt; tapping it fires the

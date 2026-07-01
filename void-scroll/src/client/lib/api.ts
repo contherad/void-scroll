@@ -4,6 +4,9 @@
 import type {
   BestResponse,
   ChaseTarget,
+  ChallengeInfo,
+  ChallengeScoreResponse,
+  CreateChallengeResponse,
   DailyResponse,
   DailyScoreResponse,
   InitResponse,
@@ -11,9 +14,15 @@ import type {
   ProgressResponse,
   ScoreResponse,
   ShareResponse,
+  SubmitWordResponse,
 } from '../../shared/api';
 
-export type { DailyResponse, ChaseTarget } from '../../shared/api';
+export type {
+  DailyResponse,
+  ChaseTarget,
+  ChallengeInfo,
+  ChallengeScoreResponse,
+} from '../../shared/api';
 
 export interface ScoreEntry {
   username: string;
@@ -34,10 +43,45 @@ export async function init(): Promise<{
   best: number;
   lifetime: number;
   achievements: string[];
+  challenge: ChallengeInfo | null;
 }> {
   const d = await jget<InitResponse>('/api/init');
   currentUser = d.username;
-  return { username: d.username, best: d.best, lifetime: d.lifetime, achievements: d.achievements };
+  return {
+    username: d.username,
+    best: d.best,
+    lifetime: d.lifetime,
+    achievements: d.achievements,
+    challenge: d.challenge,
+  };
+}
+
+/** Post the current run as a Challenge others can beat. */
+export async function createChallenge(
+  score: number,
+  seed: number,
+  word: string | null,
+): Promise<CreateChallengeResponse> {
+  try {
+    const r = await fetch('/api/create-challenge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ score, seed, word }),
+    });
+    return (await r.json()) as CreateChallengeResponse;
+  } catch {
+    return { ok: false, reason: 'Network error — try again' };
+  }
+}
+
+export async function submitChallengeScore(score: number): Promise<ChallengeScoreResponse> {
+  const r = await fetch('/api/challenge-score', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ score }),
+  });
+  if (!r.ok) throw new Error(`challenge-score -> ${r.status}`);
+  return (await r.json()) as ChallengeScoreResponse;
 }
 
 /** Cumulative lifetime total + unlocked badge ids (one /init round-trip). */
@@ -88,6 +132,11 @@ export function hasCurrentUser(): boolean {
   return currentUser != null;
 }
 
+/** The resolved Reddit username, or null if logged out / not yet initialised. */
+export function currentUsername(): string | null {
+  return currentUser;
+}
+
 // --- Share ---
 
 export async function shareRun(score: number, mode: string, zone: string): Promise<boolean> {
@@ -124,6 +173,20 @@ export async function submitProgress(clearedLevel: number): Promise<number> {
 
 export async function getDaily(): Promise<DailyResponse> {
   return jget<DailyResponse>('/api/daily');
+}
+
+/** Submit a word that may headline a future Daily Descent. */
+export async function submitWord(word: string): Promise<SubmitWordResponse> {
+  try {
+    const r = await fetch('/api/submit-word', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word }),
+    });
+    return (await r.json()) as SubmitWordResponse;
+  } catch {
+    return { ok: false, reason: 'Network error — try again' };
+  }
 }
 
 export async function submitDailyScore(

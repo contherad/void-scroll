@@ -10,9 +10,13 @@ import { Leaderboard } from './components/Leaderboard';
 import { MilestoneToast } from './components/MilestoneToast';
 import { EventBanner } from './components/EventBanner';
 import { MiniGame } from './components/MiniGame';
+import { ClashArena } from './components/ClashArena';
 import { useSwipePhysics } from './hooks/useSwipePhysics';
 import { useVoidEvents } from './hooks/useVoidEvents';
 import { useBonusOrbs, ORB_BOOST, type OrbKind } from './hooks/useBonusOrbs';
+import { useClash, type ClashNet } from './hooks/useClash';
+import { KNOCKBACK } from './lib/clash';
+import { openClash, type ClashConn } from './lib/clashNet';
 import {
   getLevel,
   isEndless,
@@ -49,52 +53,63 @@ import {
   submitProgress,
   shareRun,
   hasCurrentUser,
+  currentUsername,
   getMenuStats,
   isCurrentUser,
+  submitWord,
+  createChallenge,
+  submitChallengeScore,
   type ScoreEntry,
   type ChaseTarget,
+  type ChallengeInfo,
+  type ChallengeScoreResponse,
 } from './lib/api';
 import type { FeedMarker } from './components/SwipeCard';
 import { ACHIEVEMENTS, nextDepthBadge } from '../shared/achievements';
+import { validateWord, WORD_MAX } from '../shared/words';
 
 type Phase = 'idle' | 'map' | 'playing' | 'transition' | 'leaderboard';
-type Mode = 'campaign' | 'daily';
+type Mode = 'campaign' | 'daily' | 'clash';
 
 interface GameState {
   phase: Phase;
   mode: Mode;
   level: number;
   finalScore: number;
+  finalSeed: number; // the seed of the run just ended — for "Post as Challenge"
 }
 
 type Action =
   | { type: 'SHOW_MAP' }
   | { type: 'START_LEVEL'; level: number }
   | { type: 'START_DAILY' }
+  | { type: 'START_CLASH' }
   | { type: 'CLEAR_LEVEL'; score: number }
   | { type: 'CONTINUE' }
-  | { type: 'END_RUN'; score: number }
+  | { type: 'END_RUN'; score: number; seed: number }
   | { type: 'QUIT' }
   | { type: 'BACK_TO_MENU' };
 
-const INITIAL: GameState = { phase: 'idle', mode: 'campaign', level: 1, finalScore: 0 };
+const INITIAL: GameState = { phase: 'idle', mode: 'campaign', level: 1, finalScore: 0, finalSeed: 0 };
 
 function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'SHOW_MAP':
-      return { phase: 'map', mode: 'campaign', level: 1, finalScore: 0 };
+      return { ...INITIAL, phase: 'map' };
     case 'START_LEVEL':
-      return { phase: 'playing', mode: 'campaign', level: action.level, finalScore: 0 };
+      return { ...INITIAL, phase: 'playing', level: action.level };
     case 'START_DAILY':
-      return { phase: 'playing', mode: 'daily', level: ENDLESS_LEVEL, finalScore: 0 };
+      return { ...INITIAL, phase: 'playing', mode: 'daily', level: ENDLESS_LEVEL };
+    case 'START_CLASH':
+      return { ...INITIAL, phase: 'playing', mode: 'clash', level: ENDLESS_LEVEL };
     case 'CLEAR_LEVEL':
       return { ...state, phase: 'transition', finalScore: action.score };
     case 'CONTINUE':
       return { ...state, phase: 'playing', level: state.level + 1 };
     case 'END_RUN':
-      return { ...state, phase: 'leaderboard', finalScore: action.score };
+      return { ...state, phase: 'leaderboard', finalScore: action.score, finalSeed: action.seed };
     case 'QUIT':
-      return { phase: 'map', mode: 'campaign', level: 1, finalScore: 0 };
+      return { ...INITIAL, phase: 'map' };
     case 'BACK_TO_MENU':
       return INITIAL;
     default:
@@ -154,18 +169,143 @@ function Particles() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Challenge flow (UGC) — a fixed-seed run others play to beat the creator's score
+// ---------------------------------------------------------------------------
+
+function ChallengeFlow({ challenge }: { challenge: ChallengeInfo }) {
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'done'>('intro');
+  const [score, setScore] = useState(0);
+  const [result, setResult] = useState<ChallengeScoreResponse | null>(null);
+
+  if (phase === 'intro') {
+    return (
+      <div className="overlay">
+        <div className="overlay__panel">
+          <div className="overlay__eyebrow">🎯 Challenge · by u/{challenge.creator}</div>
+          <div className="overlay__score">{challenge.target.toLocaleString()}</div>
+          <div className="overlay__rank">beat this depth in the void</div>
+          {challenge.word && (
+            <div className="challenge-word">
+              spell <strong>{challenge.word}</strong> on the way down
+            </div>
+          )}
+          <button
+            className="btn btn--primary btn--lg"
+            onClick={() => {
+              unlockAudio();
+              startAmbient();
+              setPhase('playing');
+            }}
+          >
+            Take the Challenge
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'playing') {
+    return (
+      <Game
+        level={ENDLESS_LEVEL}
+        seedOverride={challenge.seed}
+        firstWord={challenge.word ?? undefined}
+        challengeTarget={challenge.target}
+        onClear={() => {}}
+        onEndRun={(s) => {
+          setScore(s);
+          setResult(null);
+          void submitChallengeScore(s).then(setResult).catch(() => {});
+          setPhase('done');
+        }}
+        onQuit={() => setPhase('intro')}
+      />
+    );
+  }
+
+  const beat = result?.beat ?? score >= challenge.target;
+  return (
+    <div className="overlay">
+      <div className="overlay__panel overlay__panel--wide">
+        <div className="overlay__eyebrow">🎯 Challenge · by u/{challenge.creator}</div>
+        <div className="overlay__score">{score.toLocaleString()}</div>
+        <div className={'challenge-verdict' + (beat ? ' is-win' : '')}>
+          {beat
+            ? `✦ You beat ${challenge.target.toLocaleString()}!`
+            : `${(challenge.target - score).toLocaleString()} short of ${challenge.target.toLocaleString()}`}
+        </div>
+        {result?.rank != null && (
+          <div className="overlay__rank">
+            You rank <strong>#{result.rank}</strong> on this challenge
+          </div>
+        )}
+        <div className="leaderboard">
+          {!result ? (
+            <div className="leaderboard__loading">Reading the void…</div>
+          ) : result.entries.length === 0 ? (
+            <div className="leaderboard__loading">Be the first to log a score.</div>
+          ) : (
+            result.entries.map((e, i) => (
+              <div
+                key={`${e.username}-${i}`}
+                className={'leaderboard__row' + (isCurrentUser(e) ? ' leaderboard__row--you' : '')}
+              >
+                <span className="leaderboard__rank">{i + 1}</span>
+                <span className="leaderboard__name">{e.username}</span>
+                <span className="leaderboard__score">{e.score.toLocaleString()}</span>
+              </div>
+            ))
+          )}
+        </div>
+        <button
+          className="btn btn--primary"
+          onClick={() => {
+            setResult(null);
+            setScore(0);
+            setPhase('intro');
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, INITIAL);
   const [muted, setMutedState] = useState(isMuted());
   const [unlocked, setUnlocked] = useState(1); // highest unlocked campaign level
+  const [dailyWord, setDailyWord] = useState<string | null>(null); // community word for today
+  const [dailyWordAuthor, setDailyWordAuthor] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<ChallengeInfo | null>(null); // set if this is a challenge post
+  const [booted, setBooted] = useState(false); // init resolved (so we route correctly)
+
+  // Pull today's community word — also re-run after a submit so a just-claimed word
+  // shows up immediately (attribution + the daily run itself).
+  const refreshDailyWord = useCallback(() => {
+    void getDaily()
+      .then((d) => {
+        setDailyWord(d.word);
+        setDailyWordAuthor(d.wordAuthor);
+      })
+      .catch(() => {});
+  }, []);
 
   // Resolve the current user + load saved campaign progress.
   useEffect(() => {
-    void init().catch(() => {});
+    void init()
+      .then((d) => {
+        setChallenge(d.challenge);
+        setBooted(true);
+      })
+      .catch(() => setBooted(true));
     void getProgress()
       .then((u) => setUnlocked(u))
       .catch(() => {});
-  }, []);
+    refreshDailyWord();
+  }, [refreshDailyWord]);
 
   // Ambient bed: starts silent (suspended) and fades in on the first gesture that
   // unlocks audio. Off while muted. The mute toggle also stops/starts it.
@@ -203,8 +343,15 @@ export default function App() {
         {muted ? '🔇' : '🔊'}
       </button>
       <div className="screen">
+        {booted && challenge ? (
+          <ChallengeFlow challenge={challenge} />
+        ) : !booted ? null : (
+          <>
         {state.phase === 'idle' && (
           <IdleScreen
+            word={dailyWord}
+            wordAuthor={dailyWordAuthor}
+            onWordSubmitted={refreshDailyWord}
             onStart={() => {
               unlockAudio();
               startAmbient();
@@ -214,6 +361,11 @@ export default function App() {
               unlockAudio();
               startAmbient();
               dispatch({ type: 'START_DAILY' });
+            }}
+            onStartClash={() => {
+              unlockAudio();
+              startAmbient();
+              dispatch({ type: 'START_CLASH' });
             }}
           />
         )}
@@ -226,14 +378,22 @@ export default function App() {
           />
         )}
 
-        {state.phase === 'playing' && (
+        {state.phase === 'playing' && state.mode === 'clash' && (
+          <ClashGame
+            onEndRun={(score) => dispatch({ type: 'END_RUN', score, seed: 0 })}
+            onQuit={() => dispatch({ type: 'BACK_TO_MENU' })}
+          />
+        )}
+
+        {state.phase === 'playing' && state.mode !== 'clash' && (
           <Game
             key={`${state.mode}-${state.level}`}
             level={state.level}
             daily={state.mode === 'daily'}
+            firstWord={state.mode === 'daily' ? (dailyWord ?? undefined) : undefined}
             pool={state.mode === 'daily' ? DAILY_POOL : FEED_CARDS}
             onClear={(score) => handleClear(state.level, score)}
-            onEndRun={(score) => dispatch({ type: 'END_RUN', score })}
+            onEndRun={(score, seed) => dispatch({ type: 'END_RUN', score, seed })}
             onQuit={() => dispatch({ type: 'QUIT' })}
           />
         )}
@@ -250,9 +410,12 @@ export default function App() {
           <LeaderboardScreen
             mode={state.mode}
             finalScore={state.finalScore}
+            finalSeed={state.finalSeed}
             level={state.level}
             onPlayAgain={() => dispatch({ type: 'BACK_TO_MENU' })}
           />
+        )}
+          </>
         )}
       </div>
     </div>
@@ -311,15 +474,93 @@ function LevelMap({
 }
 
 // ---------------------------------------------------------------------------
+// Community word submission (UGC) — a sent word may headline a future Daily Descent
+// ---------------------------------------------------------------------------
+
+function DailyWordSubmit({ onSubmitted }: { onSubmitted: () => void }) {
+  const [val, setVal] = useState('');
+  const [phase, setPhase] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [msg, setMsg] = useState('');
+
+  const submit = () => {
+    const check = validateWord(val);
+    if (!check.ok) {
+      setPhase('error');
+      setMsg(check.reason);
+      return;
+    }
+    setPhase('sending');
+    void submitWord(check.word).then((r) => {
+      if (r.ok) {
+        setPhase('done');
+        setMsg(
+          r.today
+            ? `“${r.word}” is today’s word — play the Daily Descent!`
+            : `“${r.word}” queued — it’ll headline an upcoming descent.`,
+        );
+        onSubmitted(); // refresh so a just-claimed word shows immediately
+      } else {
+        setPhase('error');
+        setMsg(r.reason);
+      }
+    });
+  };
+
+  if (phase === 'done') {
+    return <div className="wordsub wordsub--done">✓ {msg}</div>;
+  }
+  return (
+    <div className="wordsub">
+      <div className="wordsub__label">✍ Send a word — first one each day headlines the Daily</div>
+      <div className="wordsub__row">
+        <input
+          className="wordsub__input"
+          value={val}
+          maxLength={WORD_MAX}
+          autoCapitalize="characters"
+          placeholder="DRIFT"
+          aria-label="Word to submit"
+          onChange={(e) => {
+            setVal(
+              e.target.value
+                .toUpperCase()
+                .replace(/[^A-Z]/g, '')
+                .slice(0, WORD_MAX),
+            );
+            if (phase === 'error') setPhase('idle');
+          }}
+        />
+        <button
+          className="btn wordsub__btn"
+          disabled={phase === 'sending' || val.length === 0}
+          onClick={submit}
+        >
+          {phase === 'sending' ? '…' : 'Send'}
+        </button>
+      </div>
+      {phase === 'error' && <div className="wordsub__msg">{msg}</div>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Idle / start screen
 // ---------------------------------------------------------------------------
 
 function IdleScreen({
+  word,
+  wordAuthor,
+  onWordSubmitted,
   onStart,
   onStartDaily,
+  onStartClash,
 }: {
+  word: string | null;
+  wordAuthor: string | null;
+  onWordSubmitted: () => void;
   onStart: () => void;
   onStartDaily: () => void;
+  onStartClash: () => void;
 }) {
   const [best, setBest] = useState(0);
   const [allBoard, setAllBoard] = useState<ScoreEntry[]>([]);
@@ -413,7 +654,23 @@ function IdleScreen({
         <button className="btn btn--daily" onClick={onStartDaily}>
           🗓 Daily Descent{!loading && dailyBest > 0 ? ` · today ${dailyBest.toLocaleString()}` : ''}
         </button>
+        <button className="btn btn--daily btn--clash" onClick={onStartClash}>
+          ⚔ Void Clash · live
+        </button>
+        {word && (
+          <div className="idle__dailyword">
+            today’s word <strong>{word}</strong>
+            {wordAuthor ? (
+              <>
+                {' '}
+                · by <span className="idle__dailyword-by">u/{wordAuthor}</span>
+              </>
+            ) : null}
+          </div>
+        )}
       </div>
+
+      <DailyWordSubmit onSubmitted={onWordSubmitted} />
 
       <div className="idle__how">
         <div className="idle__how-row">
@@ -499,6 +756,9 @@ function IdleScreen({
 function Game({
   level,
   daily = false,
+  firstWord,
+  seedOverride,
+  challengeTarget,
   pool = FEED_CARDS,
   onClear,
   onEndRun,
@@ -506,9 +766,12 @@ function Game({
 }: {
   level: number;
   daily?: boolean;
+  firstWord?: string | undefined; // overrides the first endless word (daily/challenge)
+  seedOverride?: number | undefined; // fixed seed (challenge = reproducible run)
+  challengeTarget?: number | undefined; // draws a "target" chase line to beat
   pool?: CardContent[];
   onClear: (score: number) => void;
-  onEndRun: (score: number) => void;
+  onEndRun: (score: number, seed: number) => void;
   onQuit: () => void;
 }) {
   const config = getLevel(level);
@@ -541,11 +804,17 @@ function Game({
   // off). Endless cycles through a SEQUENCE of words — complete one, launch, the
   // next appears ahead. Campaign levels are a pure climb — empty phrase, no letters.
   // Daily is date-seeded (shared puzzle); a free endless run gets fresh random words.
-  const [seed] = useState(() =>
-    daily ? dateSeed() ^ level : (Math.floor(Math.random() * 0x100000000) >>> 0) || 1,
+  const [seed] = useState(
+    () =>
+      seedOverride ??
+      (daily ? dateSeed() ^ level : (Math.floor(Math.random() * 0x100000000) >>> 0) || 1),
   );
   const [wordIndex, setWordIndex] = useState(0);
-  const [phrase, setPhrase] = useState(() => (isEndless(level) ? phraseFor(seed) : ''));
+  // The FIRST endless word can be overridden (the community Daily word, or a
+  // challenge's word); the rest come from the seeded sequence.
+  const [phrase, setPhrase] = useState(() =>
+    isEndless(level) ? (firstWord ?? phraseFor(seed)) : '',
+  );
   const [letterMap, setLetterMap] = useState(() =>
     isEndless(level) ? letterSlots(phrase, seed) : new Map<number, number>(),
   );
@@ -704,6 +973,9 @@ function Game({
         if (!alive) return;
         prevBestRef.current = b;
         const ms: FeedMarker[] = [];
+        if (challengeTarget && challengeTarget > 0) {
+          ms.push({ depth: challengeTarget, label: '🎯 TARGET', kind: 'target' });
+        }
         if (b > 0) ms.push({ depth: b, label: 'YOUR BEST', kind: 'best' });
         const t = top1[0];
         if (t && t.score > 0 && !isCurrentUser(t)) {
@@ -719,7 +991,7 @@ function Game({
     return () => {
       alive = false;
     };
-  }, [endless]);
+  }, [endless, challengeTarget]);
 
   useEffect(() => {
     if (!endless || pbDoneRef.current) return;
@@ -755,7 +1027,7 @@ function Game({
     if (resumeTimer.current) clearTimeout(resumeTimer.current);
   }, []);
 
-  const handleEnd = useCallback(() => onEndRun(physics.best), [onEndRun, physics.best]);
+  const handleEnd = useCallback(() => onEndRun(physics.best, seed), [onEndRun, physics.best, seed]);
 
   // Vertical depth gauge fills top→down: endless = progress toward your best, a
   // campaign level = progress toward clearing.
@@ -913,6 +1185,191 @@ function Game({
 }
 
 // ---------------------------------------------------------------------------
+// Void Clash — live multiplayer descent: race + fight other players (and bots)
+// ---------------------------------------------------------------------------
+
+const EMPTY_LETTERS = new Map<number, number>();
+const EMPTY_COLLECTED = new Set<number>();
+function noop() {}
+
+function ClashGame({
+  onEndRun,
+  onQuit,
+}: {
+  onEndRun: (score: number) => void;
+  onQuit: () => void;
+}) {
+  const config = getLevel(ENDLESS_LEVEL);
+  const physics = useSwipePhysics(config.k);
+  const selfName = currentUsername() ?? 'you';
+
+  // Realtime transport — undefined until we've joined a real post's channel; the
+  // sim runs bots-only until then (and always, in the standalone web build).
+  const [net, setNet] = useState<ClashNet | undefined>(undefined);
+
+  const clash = useClash({
+    active: true,
+    selfName,
+    selfDepth: physics.score,
+    net,
+    onSelfHit: () => {
+      physics.knockback(KNOCKBACK);
+      sfxSting();
+      buzz([20, 40, 20]);
+    },
+    onSelfDeflect: () => {
+      sfxTick();
+      buzz(15);
+    },
+  });
+
+  // Bridge the realtime channel to the sim. Ingest fns are read through a ref so the
+  // subscription (opened once) always calls the latest without re-subscribing.
+  const ingestRef = useRef({
+    state: clash.ingestState,
+    fire: clash.ingestFire,
+    leave: clash.ingestLeave,
+  });
+  useEffect(() => {
+    ingestRef.current = {
+      state: clash.ingestState,
+      fire: clash.ingestFire,
+      leave: clash.ingestLeave,
+    };
+  });
+  useEffect(() => {
+    let conn: ClashConn | null = null;
+    let closed = false;
+    void openClash(selfName, {
+      onState: (s) => ingestRef.current.state(s),
+      onFire: (from, target) => ingestRef.current.fire(from, target),
+      onLeave: (id) => ingestRef.current.leave(id),
+    }).then((c) => {
+      if (closed) {
+        c?.close();
+        return;
+      }
+      conn = c;
+      if (c) setNet(c.net);
+    });
+    return () => {
+      closed = true;
+      conn?.close();
+    };
+  }, [selfName]);
+
+  // Combat toasts, driven off the sim's event stream (one per new seq).
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const lastSeq = useRef(0);
+  useEffect(() => {
+    if (!clash.event || clash.event.seq === lastSeq.current) return;
+    lastSeq.current = clash.event.seq;
+    const e = clash.event.event;
+    let msg: string | null = null;
+    switch (e.kind) {
+      case 'hit-them':
+        msg = `🎯 tagged ${e.name} · −1000`;
+        break;
+      case 'hit-you':
+        msg = `💥 ${e.name} hit you · −1000`;
+        break;
+      case 'deflect-you':
+        msg = `🛡 blocked ${e.name}`;
+        break;
+      case 'deflect-them':
+        msg = `🛡 ${e.name} blocked it`;
+        break;
+      case 'pickup':
+        msg = e.pickup === 'ammo' ? '🔩 +1 ammo' : '🛡 +1 shield';
+        break;
+      case 'no-ammo':
+        msg = 'no ammo — grab 🔩';
+        break;
+      case 'cooldown':
+        msg = 'reloading…';
+        break;
+      case 'out-of-range':
+        msg = 'too far to hit';
+        break;
+    }
+    if (!msg) return;
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 1100);
+  }, [clash.event]);
+
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
+
+  // Live standing among all racers (deepest = #1).
+  const ahead = clash.racers.filter((r) => !r.isSelf && r.depth > physics.score).length;
+  const rank = ahead + 1;
+  const total = Math.max(1, clash.racers.length);
+
+  const [coach, setCoach] = useState(true);
+  useEffect(() => {
+    const t = window.setTimeout(() => setCoach(false), 5600);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="game game--clash">
+      <div className="hud">
+        <div className="hud__top">
+          <button className="hud__quit" onClick={onQuit} aria-label="Quit to menu">
+            ✕
+          </button>
+          <span className="hud__level">
+            VOID CLASH · #{rank} of {total}
+          </span>
+          <button className="hud__end" onClick={() => onEndRun(physics.best)}>
+            End run
+          </button>
+        </div>
+        <div className="hud__score">{physics.best.toLocaleString()}</div>
+        <div className="hud__readout">now {physics.score.toLocaleString()} · depth</div>
+      </div>
+
+      <SwipeCard
+        distance={-physics.visualY}
+        hero={config.card}
+        pool={FEED_CARDS}
+        items={config.items}
+        phrase=""
+        letterMap={EMPTY_LETTERS}
+        collected={EMPTY_COLLECTED}
+        onCollect={noop}
+        handlers={physics.handlers}
+      />
+
+      <ClashArena
+        racers={clash.racers}
+        now={clash.clock}
+        selfDepth={physics.score}
+        ammo={clash.ammo}
+        shields={clash.shields}
+        pickups={clash.pickups}
+        onFire={clash.fireAt}
+        onCollect={clash.collect}
+      />
+
+      {coach && (
+        <div className="coach">
+          ⚔ tap a rival to fire · grab 🔩 ammo &amp; 🛡 shields · a hit costs 1,000 depth
+        </div>
+      )}
+
+      <div className="toasts">{toast && <MilestoneToast message={toast} />}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Leaderboard screen (submits the run, then shows the right board)
 // ---------------------------------------------------------------------------
 
@@ -925,11 +1382,13 @@ function hoursToNextUtcMidnight(): number {
 function LeaderboardScreen({
   mode,
   finalScore,
+  finalSeed,
   level,
   onPlayAgain,
 }: {
   mode: Mode;
   finalScore: number;
+  finalSeed: number;
   level: number;
   onPlayAgain: () => void;
 }) {
@@ -998,7 +1457,20 @@ function LeaderboardScreen({
     );
   }, [shareState, finalScore, mode]);
 
+  // Post this run as a Challenge others can beat (creates a new post).
+  const [challengeState, setChallengeState] = useState<'idle' | 'posting' | 'done' | 'failed'>(
+    'idle',
+  );
+  const handleChallenge = useCallback(() => {
+    if (challengeState === 'posting' || challengeState === 'done') return;
+    setChallengeState('posting');
+    void createChallenge(finalScore, finalSeed, null).then((r) =>
+      setChallengeState(r.ok ? 'done' : 'failed'),
+    );
+  }, [challengeState, finalScore, finalSeed]);
+
   const daily = mode === 'daily';
+  const clash = mode === 'clash';
   return (
     <Leaderboard
       boards={[
@@ -1011,13 +1483,15 @@ function LeaderboardScreen({
       rank={rank}
       loading={loading}
       streak={daily ? streak : null}
-      title={daily ? 'Daily descent' : 'Run complete'}
+      title={daily ? 'Daily descent' : clash ? 'Clash over' : 'Run complete'}
       rankNoun={daily ? "today's descent" : 'the void'}
       footnote={daily ? `New descent in ~${hoursToNextUtcMidnight()}h` : undefined}
       playAgainLabel={daily ? 'Back to menu' : 'Play again'}
       onPlayAgain={onPlayAgain}
       onShare={finalScore > 0 && hasCurrentUser() ? handleShare : undefined}
       shareState={shareState}
+      onChallenge={finalScore > 0 && finalSeed > 0 && hasCurrentUser() ? handleChallenge : undefined}
+      challengeState={challengeState}
       newAchievements={newAch}
       chase={chase}
       best={best}

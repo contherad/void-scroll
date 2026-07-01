@@ -38,6 +38,8 @@ interface SwipePhysics {
   };
   /** Instantly jump the feed forward by `px` (e.g. a bonus orb). */
   boost: (px: number) => void;
+  /** Knock the feed BACK by `px` (min 0) — e.g. taking a rival's hit in Void Clash. */
+  knockback: (px: number) => void;
   /** Slingshot to a NEW record: max(current, best) + px. Always raises best. */
   slingshot: (px: number) => void;
   /** Freeze the feed in place (no fall) until the next grab — e.g. while a mini-game is open. */
@@ -231,6 +233,12 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
 
   // Bonus orb: glide forward. Slingshot: glide to a new record (always raises best).
   const boost = useCallback((px: number) => glide(distanceRef.current + px, 260), [glide]);
+  // Taking a hit: glide the feed back down (never below the middle). Does NOT touch
+  // `best` — you keep your record, but your live depth (and any lead) takes the hit.
+  const knockback = useCallback(
+    (px: number) => glide(Math.max(0, distanceRef.current - px), 300),
+    [glide],
+  );
   const slingshot = useCallback(
     (px: number) => glide(Math.max(distanceRef.current, bestRef.current) + px, 340),
     [glide],
@@ -292,6 +300,7 @@ export function useSwipePhysics(k: number, gainMultiplier = 1): SwipePhysics {
       onPointerCancel: endPointer,
     },
     boost,
+    knockback,
     slingshot,
     hold,
     allowResume,

@@ -10,8 +10,13 @@ import type {
   ScoreResponse,
   ShareResponse,
   ChaseTarget,
+  SubmitWordResponse,
+  ChallengeInfo,
+  CreateChallengeResponse,
+  ChallengeScoreResponse,
 } from '../../shared/api';
 import { unlockedIds, type AchStats } from '../../shared/achievements';
+import { validateWord } from '../../shared/words';
 
 export const api = new Hono();
 
@@ -91,6 +96,7 @@ api.get('/init', async (c) => {
     lifetime,
     achievements,
     postId: context.postId ?? null,
+    challenge: await challengeFor(context.postId ?? null),
   });
 });
 
@@ -243,6 +249,208 @@ api.get('/streak-leaderboard', async (c) => {
   });
 });
 
+// --------------------------------------------------- Community-authored Daily word
+const WORD_QUEUE = 'word:queue'; // sorted set: score = submit time, member = {word,author}
+
+type WordEntry = { word: string; author: string };
+
+function parseWordEntry(raw: string | undefined): WordEntry | null {
+  if (!raw) return null;
+  try {
+    const e = JSON.parse(raw) as WordEntry;
+    return e && typeof e.word === 'string' ? e : null;
+  } catch {
+    return null;
+  }
+}
+
+// Today's community word: the same for everyone (picked once, then cached for the day).
+// Words are served in submission order, cycling — so every submission eventually
+// headlines a daily. Returns null when no submissions exist yet (caller falls back).
+async function dailyWord(date: string): Promise<WordEntry | null> {
+  const cacheKey = `daily-word:${date}`;
+  const cached = parseWordEntry(await redis.get(cacheKey));
+  if (cached) return cached;
+
+  const n = await redis.zCard(WORD_QUEUE);
+  if (n === 0) return null;
+  const cursorRaw = await redis.get('word:cursor');
+  const cursor = cursorRaw ? Math.max(0, parseInt(cursorRaw, 10) || 0) : 0;
+  const idx = cursor % n;
+  const rows = await redis.zRange(WORD_QUEUE, idx, idx, { by: 'rank' }); // ascending = oldest-first
+  const entry = parseWordEntry(rows[0]?.member);
+  if (!entry) return null;
+  await redis.set('word:cursor', String(cursor + 1));
+  await redis.set(cacheKey, JSON.stringify(entry));
+  await redis.expire(cacheKey, 60 * 60 * 24 * 3);
+  return entry;
+}
+
+// ----------------------------------------- Live leaderboard COMMENT on the post
+// An app-owned, stickied comment that shows today's top descents and refreshes as
+// scores arrive — so the post shows live community activity right in the feed.
+
+function buildDailyComment(
+  date: string,
+  top: { username: string; score: number }[],
+  word: string | null,
+  author: string | null,
+): string {
+  const head = word
+    ? `Today's word: **${word}**${author ? ` — sent by u/${author}` : ''}`
+    : `Spell the word, ride the depths.`;
+  const rows = top.length
+    ? top.map((e, i) => `${i + 1}. **u/${e.username}** — ${e.score.toLocaleString()}`).join('\n')
+    : `_Be the first to descend today._`;
+  return [
+    `## 🌌 Void Scroll — Daily Descent · ${date}`,
+    head,
+    '',
+    rows,
+    '',
+    `*Open the post above ↑ and swipe — how deep can you send the feed into the void?*`,
+    `^(Auto-updated leaderboard · new descent every day)`,
+  ].join('\n');
+}
+
+async function updateDailyComment(postId: string): Promise<void> {
+  const date = dayKey(0);
+  const board = `daily:${date}`;
+  const rows = await redis.zRange(board, 0, 4, { reverse: true, by: 'rank' });
+  const top = rows.map((r) => ({ username: r.member, score: Math.round(r.score) }));
+  const w = await dailyWord(date);
+  const text = buildDailyComment(date, top, w?.word ?? null, w?.author ?? null);
+
+  const key = `lb-comment:${postId}`;
+  const stored = await redis.get(key);
+  if (stored) {
+    const existing = await reddit.getCommentById(stored as `t1_${string}`).catch(() => null);
+    if (existing) {
+      await existing.edit({ text, runAs: 'APP' });
+      return;
+    }
+  }
+  const comment = await reddit.submitComment({
+    id: postId as `t3_${string}`,
+    text,
+    runAs: 'APP',
+  });
+  await redis.set(key, comment.id);
+  await comment.distinguish(true).catch(() => {}); // sticky to the top (best-effort)
+}
+
+// --------------------------------------------------- Player-created Challenges (UGC)
+async function challengeFor(postId: string | null): Promise<ChallengeInfo | null> {
+  if (!postId) return null;
+  const raw = await redis.get(`challenge:${postId}`);
+  if (!raw) return null;
+  try {
+    const ch = JSON.parse(raw) as ChallengeInfo;
+    return ch && typeof ch.seed === 'number' ? ch : null;
+  } catch {
+    return null;
+  }
+}
+
+// Turn a run into a new Challenge POST others can play + beat (drives the feed).
+api.post('/create-challenge', async (c) => {
+  const username = await reddit.getCurrentUsername();
+  if (!username) {
+    return c.json<CreateChallengeResponse>({ ok: false, reason: 'Log in to post a challenge' }, 400);
+  }
+  const body = await c.req.json<{ score?: number; seed?: number; word?: string }>();
+  const target = Math.max(0, Math.round(body.score ?? 0));
+  const seed = Math.floor(body.seed ?? 0) >>> 0;
+  if (target <= 0 || !seed) {
+    return c.json<CreateChallengeResponse>({ ok: false, reason: 'Play a run first' }, 400);
+  }
+
+  const cooldown = `challenge:cooldown:${username}`;
+  if (await redis.get(cooldown)) {
+    return c.json<CreateChallengeResponse>({ ok: false, reason: 'One challenge every few minutes' }, 429);
+  }
+
+  const word = typeof body.word === 'string' && body.word ? body.word : null;
+  let url: string;
+  try {
+    const post = await reddit.submitCustomPost({
+      title: `Void Scroll Challenge · beat ${target.toLocaleString()} — by u/${username}`,
+    });
+    const info: ChallengeInfo = { creator: username, seed, target, word };
+    await redis.set(`challenge:${post.id}`, JSON.stringify(info));
+    url = post.url;
+  } catch (error) {
+    console.error(`create-challenge failed: ${error}`);
+    return c.json<CreateChallengeResponse>({ ok: false, reason: 'Could not create the post' }, 500);
+  }
+
+  await redis.set(cooldown, '1');
+  await redis.expire(cooldown, 5 * 60);
+  return c.json<CreateChallengeResponse>({ ok: true, url });
+});
+
+// Submit a run against the challenge this post hosts.
+api.post('/challenge-score', async (c) => {
+  const username = await reddit.getCurrentUsername();
+  const postId = context.postId ?? null;
+  const ch = await challengeFor(postId);
+  if (!ch || !postId) return c.json({ status: 'error', message: 'not a challenge' }, 400);
+  if (!username) return c.json({ status: 'error', message: 'must be logged in' }, 400);
+
+  const body = await c.req.json<{ score?: number }>();
+  const score = Math.max(0, Math.round(body.score ?? 0));
+  const board = `challenge-board:${postId}`;
+  const prev = (await redis.zScore(board, username)) ?? 0;
+  if (score > prev) await redis.zAdd(board, { member: username, score });
+  const best = Math.round(Math.max(prev, score));
+  const rank = await rankIn(board, username);
+  const rows = await redis.zRange(board, 0, 9, { reverse: true, by: 'rank' });
+
+  // A challenge run still counts toward your global best + lifetime + badges.
+  const { best: globalBest, lifetime } = await recordRun(username, score);
+  await syncAchievements(username, { best: globalBest, lifetime, streak: await getStreak(username) });
+
+  return c.json<ChallengeScoreResponse>({
+    rank,
+    target: ch.target,
+    beat: best >= ch.target,
+    entries: rows.map((r) => ({ username: r.member, score: Math.round(r.score) })),
+  });
+});
+
+// Submit a word for a future Daily Descent (one per user per day).
+api.post('/submit-word', async (c) => {
+  const username = await reddit.getCurrentUsername();
+  if (!username) return c.json<SubmitWordResponse>({ ok: false, reason: 'Log in to submit' }, 400);
+
+  const body = await c.req.json<{ word?: string }>();
+  const check = validateWord(body.word ?? '');
+  if (!check.ok) return c.json<SubmitWordResponse>({ ok: false, reason: check.reason }, 400);
+
+  const dayGate = `word:sent:${username}:${dayKey(0)}`;
+  if (await redis.get(dayGate)) {
+    return c.json<SubmitWordResponse>({ ok: false, reason: 'One word per day — back tomorrow' }, 429);
+  }
+  await redis.set(dayGate, '1');
+  await redis.expire(dayGate, 60 * 60 * 36);
+
+  const entry = JSON.stringify({ word: check.word, author: username });
+  await redis.zAdd(WORD_QUEUE, { score: Date.now(), member: entry });
+
+  // Claim today's word if the slot is still open (first submitter of the day wins it),
+  // otherwise it's queued for an upcoming descent.
+  const cacheKey = `daily-word:${dayKey(0)}`;
+  let today = false;
+  if (!(await redis.get(cacheKey))) {
+    await redis.set(cacheKey, entry);
+    await redis.expire(cacheKey, 60 * 60 * 24 * 2);
+    today = true;
+  }
+
+  const queued = await redis.zCard(WORD_QUEUE);
+  return c.json<SubmitWordResponse>({ ok: true, word: check.word, queued, today });
+});
+
 // Today's shared run: seed (feed order), daily board, your best/rank, your streak.
 api.get('/daily', async (c) => {
   const date = dayKey(0);
@@ -252,6 +460,7 @@ api.get('/daily', async (c) => {
   const best = username ? Math.round((await redis.zScore(board, username)) ?? 0) : 0;
   const rank = username ? await rankIn(board, username) : null;
   const streak = username ? await getStreak(username) : 0;
+  const w = await dailyWord(date);
   return c.json<DailyResponse>({
     date,
     seed: seedFromDate(date),
@@ -259,6 +468,8 @@ api.get('/daily', async (c) => {
     best,
     rank,
     streak,
+    word: w?.word ?? null,
+    wordAuthor: w?.author ?? null,
   });
 });
 
@@ -286,6 +497,24 @@ api.post('/daily-score', async (c) => {
   const { best: globalBest, lifetime } = await recordRun(username, score);
   const { newly } = await syncAchievements(username, { best: globalBest, lifetime, streak });
   const chase = await chaseAbove(board, rank);
+
+  // Refresh the post's live leaderboard comment — immediately if this run cracked the
+  // top 5, otherwise at most every ~3 min. Best-effort: never fail the score on it.
+  const postId = context.postId;
+  if (postId) {
+    const inTop = rank != null && rank <= 5;
+    const atKey = `lb-comment-at:${postId}`;
+    const last = await redis.get(atKey);
+    const now = Date.now();
+    if (inTop || !last || now - (parseInt(last, 10) || 0) > 3 * 60 * 1000) {
+      await redis.set(atKey, String(now));
+      try {
+        await updateDailyComment(postId);
+      } catch (error) {
+        console.error(`Leaderboard comment update failed: ${error}`);
+      }
+    }
+  }
 
   return c.json<DailyScoreResponse>({ best, rank, streak, lifetime, newAchievements: newly, chase });
 });

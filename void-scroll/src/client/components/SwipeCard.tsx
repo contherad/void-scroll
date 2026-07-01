@@ -40,7 +40,7 @@ interface Props {
 export interface FeedMarker {
   depth: number; // distance (px) at which this line sits
   label: string;
-  kind: 'best' | 'top';
+  kind: 'best' | 'top' | 'target';
 }
 
 function cardAt(index: number, hero: CardContent, pool: CardContent[]): CardContent {

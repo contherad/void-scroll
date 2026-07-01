@@ -1,5 +1,14 @@
 // Shared API types (client <-> server).
 
+// A player-created Challenge: a fixed-seed run others try to beat. When the game
+// loads inside a Challenge post, init returns this and the app drops into that run.
+export type ChallengeInfo = {
+  creator: string;
+  seed: number;
+  target: number; // the creator's score to beat
+  word: string | null; // the creator's headline word (the phrase you spell)
+};
+
 export type InitResponse = {
   type: 'init';
   username: string | null;
@@ -7,6 +16,16 @@ export type InitResponse = {
   lifetime: number;
   achievements: string[]; // ids of unlocked badges
   postId: string | null;
+  challenge: ChallengeInfo | null; // non-null when this post IS a challenge
+};
+
+export type CreateChallengeResponse = { ok: true; url: string } | { ok: false; reason: string };
+
+export type ChallengeScoreResponse = {
+  rank: number | null;
+  target: number;
+  beat: boolean;
+  entries: LeaderboardEntry[];
 };
 
 export type LeaderboardEntry = { username: string; score: number };
@@ -32,7 +51,15 @@ export type DailyResponse = {
   best: number; // your best today
   rank: number | null; // your rank today
   streak: number; // consecutive days played
+  word: string | null; // today's community-authored secret word (null = no submissions yet)
+  wordAuthor: string | null; // who sent it
 };
+
+// Submitting a word for the Daily Descent. `today` = it claimed today's open slot
+// (you're the first), otherwise it's queued for an upcoming descent.
+export type SubmitWordResponse =
+  | { ok: true; word: string; queued: number; today: boolean }
+  | { ok: false; reason: string };
 export type DailyScoreResponse = {
   best: number;
   rank: number | null;
