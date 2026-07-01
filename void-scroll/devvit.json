@@ -1,6 +1,14 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "void-scroll",
+  "permissions": {
+    "realtime": true,
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    }
+  },
   "post": {
     "dir": "dist/client",
     "entrypoints": {
