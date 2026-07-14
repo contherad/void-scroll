@@ -1,0 +1,64 @@
+<svg width="1080" height="381" viewBox="0 0 1080 381" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="130%" r="130%">
+      <stop offset="0%" stop-color="#1a1a26"/>
+      <stop offset="45%" stop-color="#111118"/>
+      <stop offset="100%" stop-color="#0d0d0d"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9c9f2"/>
+      <stop offset="100%" stop-color="#8d8de0"/>
+    </linearGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6b8afd" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#8ea2ff" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#c4cdff" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#8ea2ff"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+
+  <rect width="1080" height="381" fill="url(#bg)"/>
+
+  <!-- particle motes -->
+  <g fill="#aeb8e6">
+    <circle cx="140" cy="90" r="2.2" opacity="0.32"/>
+    <circle cx="250" cy="290" r="1.8" opacity="0.24"/>
+    <circle cx="420" cy="60" r="2.0" opacity="0.3"/>
+    <circle cx="620" cy="320" r="1.6" opacity="0.22"/>
+    <circle cx="760" cy="70" r="2.4" opacity="0.34"/>
+    <circle cx="930" cy="250" r="1.8" opacity="0.26"/>
+    <circle cx="1010" cy="110" r="2.0" opacity="0.3"/>
+    <circle cx="70" cy="210" r="2.0" opacity="0.28"/>
+  </g>
+
+  <!-- faint glyph tiles -->
+  <g>
+    <rect x="120" y="270" width="42" height="42" rx="10" fill="none" stroke="#262636" stroke-width="2" transform="rotate(-9 141 291)"/>
+    <rect x="920" y="60" width="36" height="36" rx="9" fill="none" stroke="#242434" stroke-width="2" transform="rotate(12 938 78)"/>
+  </g>
+
+  <!-- descending card, right of the wordmark, inside the center-safe zone -->
+  <g transform="translate(920 200)">
+    <polygon points="-42,-320 26,-320 52,6 -70,6" fill="url(#trail)" filter="url(#glow)"/>
+    <circle cx="-25" cy="-200" r="2" fill="#cfd6ff" opacity="0.7"/>
+    <circle cx="8" cy="-140" r="1.8" fill="#cfd6ff" opacity="0.55"/>
+    <circle cx="-40" cy="-90" r="2" fill="#cfd6ff" opacity="0.6"/>
+    <g transform="rotate(-14)">
+      <rect x="-66" y="-66" width="132" height="132" rx="32" fill="#e8ecff" filter="url(#glow)" opacity="0.9"/>
+      <rect x="-66" y="-66" width="132" height="132" rx="32" fill="#f4f4ff"/>
+      <rect x="-57" y="-57" width="114" height="114" rx="26" fill="url(#card)"/>
+    </g>
+  </g>
+
+  <!-- wordmark, center-weighted -->
+  <g font-family="Helvetica, Arial, sans-serif" text-anchor="middle">
+    <text x="425" y="195" font-size="70" font-weight="800" letter-spacing="6" fill="url(#title)">VOID SCROLL</text>
+    <text x="425" y="243" font-size="19" letter-spacing="3.5" fill="#8a8aa0">THE FEED PUSHES BACK · HOW DEEP CAN YOU GO?</text>
+  </g>
+</svg>

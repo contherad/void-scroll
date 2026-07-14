@@ -1,0 +1,73 @@
+<svg width="1920" height="384" viewBox="0 0 1920 384" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="72%" cy="120%" r="120%">
+      <stop offset="0%" stop-color="#1a1a26"/>
+      <stop offset="45%" stop-color="#111118"/>
+      <stop offset="100%" stop-color="#0d0d0d"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9c9f2"/>
+      <stop offset="100%" stop-color="#8d8de0"/>
+    </linearGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6b8afd" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#8ea2ff" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#c4cdff" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#8ea2ff"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="384" fill="url(#bg)"/>
+
+  <!-- faint drifting glyph tiles -->
+  <g fill="#aeb8e6" font-family="Helvetica, Arial, sans-serif" font-weight="700">
+    <rect x="150" y="270" width="54" height="54" rx="12" fill="none" stroke="#2a2a3c" stroke-width="2" transform="rotate(-9 177 297)"/>
+    <rect x="1250" y="60" width="44" height="44" rx="10" fill="none" stroke="#262636" stroke-width="2" transform="rotate(12 1272 82)"/>
+    <rect x="820" y="300" width="40" height="40" rx="10" fill="none" stroke="#242434" stroke-width="2" transform="rotate(7 840 320)"/>
+    <text x="163" y="308" font-size="26" fill="#3a3a52" transform="rotate(-9 177 297)">A</text>
+    <text x="1261" y="92" font-size="22" fill="#343448" transform="rotate(12 1272 82)">✦</text>
+  </g>
+
+  <!-- particle motes -->
+  <g fill="#aeb8e6">
+    <circle cx="240" cy="90" r="2.4" opacity="0.35"/>
+    <circle cx="420" cy="300" r="1.8" opacity="0.25"/>
+    <circle cx="700" cy="70" r="2.0" opacity="0.3"/>
+    <circle cx="980" cy="250" r="1.6" opacity="0.22"/>
+    <circle cx="1180" cy="140" r="2.6" opacity="0.35"/>
+    <circle cx="1330" cy="290" r="1.8" opacity="0.24"/>
+    <circle cx="1495" cy="70" r="2.0" opacity="0.3"/>
+    <circle cx="1620" cy="330" r="2.2" opacity="0.28"/>
+    <circle cx="1800" cy="120" r="1.8" opacity="0.26"/>
+    <circle cx="90" cy="180" r="2.0" opacity="0.3"/>
+  </g>
+
+  <!-- descending card, right side; tapered light trail streams up behind it -->
+  <g transform="translate(1560 192)">
+    <polygon points="-70,-500 40,-500 85,10 -115,10" fill="url(#trail)" filter="url(#glow)"/>
+    <circle cx="-45" cy="-320" r="2.5" fill="#cfd6ff" opacity="0.8"/>
+    <circle cx="10" cy="-250" r="2" fill="#cfd6ff" opacity="0.6"/>
+    <circle cx="-70" cy="-190" r="2" fill="#cfd6ff" opacity="0.55"/>
+    <circle cx="-15" cy="-120" r="2.5" fill="#cfd6ff" opacity="0.7"/>
+    <g transform="rotate(-14)">
+      <rect x="-110" y="-110" width="220" height="220" rx="52" fill="#e8ecff" filter="url(#glow)" opacity="0.9"/>
+      <rect x="-110" y="-110" width="220" height="220" rx="52" fill="#f4f4ff"/>
+      <rect x="-96" y="-96" width="192" height="192" rx="42" fill="url(#card)"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <g font-family="Helvetica, Arial, sans-serif" font-weight="800" text-anchor="start">
+    <text x="140" y="205" font-size="104" letter-spacing="10" fill="url(#title)">VOID SCROLL</text>
+    <text x="146" y="262" font-size="26" letter-spacing="6" fill="#8a8aa0" font-weight="400">THE FEED PUSHES BACK · HOW DEEP CAN YOU GO?</text>
+  </g>
+</svg>

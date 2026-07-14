@@ -1,6 +1,9 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "void-scroll",
+  "marketingAssets": {
+    "icon": "assets/icon.png"
+  },
   "permissions": {
     "realtime": true,
     "redis": true,
